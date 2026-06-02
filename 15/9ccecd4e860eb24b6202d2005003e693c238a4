@@ -1,0 +1,14 @@
+README.md
+  h_e4c387b48ae58e 19-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "159ccecd4e860eb24b6202d2005003e693c238a4",
+  "prompts": {},
+  "humans": {
+    "h_e4c387b48ae58e": {
+      "author": "Jackson Pires <jackson.pires@gmail.com>"
+    }
+  }
+}
