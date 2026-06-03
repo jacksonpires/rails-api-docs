@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My App API · Documentation</title>
+<style>
+  :root {
+    --primary: #CC0000;
+    --primary-soft: rgba(204, 0, 0, 0.08);
+    --secondary: #2E2E2E;
+    --bg: #FFFFFF;
+    --sidebar-bg: #FAFAFA;
+    --border: #EAEAEA;
+    --border-strong: #D4D4D4;
+    --text: #1F1F1F;
+    --text-muted: #6B7280;
+    --text-soft: #9CA3AF;
+
+    --code-bg: #1B1B1F;
+    --code-bg-soft: #25252B;
+    --code-text: #E5E5E5;
+    --code-line: #4B5563;
+
+    --verb-get: #2563EB;
+    --verb-post: #16A34A;
+    --verb-put: #D97706;
+    --verb-patch: #D97706;
+    --verb-delete: #DC2626;
+
+    --verb-get-dark: #60A5FA;
+    --verb-post-dark: #4ADE80;
+    --verb-put-dark: #FBBF24;
+    --verb-delete-dark: #F87171;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  code, pre, .mono { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+  /* ================= Top bar ================= */
+  .topbar {
+    height: 56px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 600; font-size: 15px;
+  }
+  .brand-logo {
+    width: 26px; height: 26px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 13px;
+    font-family: ui-monospace, monospace;
+  }
+  .brand-version {
+    font-size: 11px; color: var(--text-muted);
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border);
+    padding: 1px 7px; border-radius: 10px;
+    margin-left: 4px;
+  }
+  .spacer { flex: 1; }
+  .topbar-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--text); font-size: 13px;
+    padding: 6px 12px; border-radius: 6px;
+  }
+  .topbar-link:hover { background: var(--sidebar-bg); }
+  .topbar-btn {
+    background: var(--secondary); color: #fff;
+    border-radius: 7px; padding: 7px 14px;
+    font-size: 13px; font-weight: 500;
+    margin-left: 4px;
+  }
+  .topbar-btn:hover { background: #000; }
+
+  /* ================= Layout grid ================= */
+  .container {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr) 500px;
+    align-items: start;
+  }
+
+  /* ================= Sidebar ================= */
+  .sidebar {
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    padding: 16px 12px 32px;
+    position: sticky;
+    top: 56px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+  }
+  .search {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 18px;
+    color: var(--text-muted); font-size: 13px;
+  }
+  .search .kbd {
+    margin-left: auto;
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px; font-size: 11px;
+    font-family: ui-monospace, monospace;
+    color: var(--text-muted);
+  }
+
+  .section { margin-bottom: 6px; }
+  .section-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px;
+    font-weight: 600; font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    border-radius: 6px;
+    user-select: none;
+  }
+  .section-header:hover { background: rgba(0,0,0,0.03); }
+  .section-header svg { width: 14px; height: 14px; opacity: 0.7; flex-shrink: 0; }
+
+  .endpoints { list-style: none; padding: 0; }
+  .endpoints a {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    padding: 6px 10px 6px 30px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 1px;
+  }
+  .endpoints a:hover { background: rgba(0,0,0,0.04); }
+  .endpoints a.active {
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-weight: 500;
+  }
+  .endpoints a .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ================= Verb badges ================= */
+  .verb {
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .verb-get    { color: var(--verb-get); }
+  .verb-post   { color: var(--verb-post); }
+  .verb-put,
+  .verb-patch  { color: var(--verb-put); }
+  .verb-delete { color: var(--verb-delete); }
+
+  /* ================= Main column ================= */
+  .main {
+    padding: 40px 56px 80px;
+    max-width: 760px;
+    width: 100%;
+  }
+  .endpoint-path {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 12px 4px 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+  .endpoint-path .verb {
+    background: rgba(22,163,74,0.12);
+    color: var(--verb-post);
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+  }
+  .endpoint-path .path {
+    font-family: ui-monospace, monospace;
+    color: var(--text);
+    font-size: 12.5px;
+  }
+
+  .main h1 {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 10px;
+    letter-spacing: -0.01em;
+  }
+  .main .lead {
+    font-size: 15px;
+    color: var(--text);
+    margin-bottom: 32px;
+    max-width: 620px;
+  }
+  .main h2 {
+    font-size: 19px;
+    font-weight: 600;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    margin: 36px 0 18px;
+    letter-spacing: -0.01em;
+  }
+  .main h2:first-of-type { margin-top: 0; }
+
+  /* ================= Field rows ================= */
+  .field {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .field:last-child { border-bottom: none; }
+  .field-row {
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap;
+  }
+  .field-name {
+    font-family: ui-monospace, monospace;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .field-type {
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .field-meta {
+    color: var(--text-soft);
+    font-size: 12px;
+    font-family: ui-monospace, monospace;
+  }
+  .field-badge {
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 4px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+  .field-badge.required {
+    background: #FEF3C7; color: #92400E;
+  }
+  .field-badge.readonly {
+    background: #DBEAFE; color: #1E40AF;
+  }
+  .field-badge.writeonly {
+    background: #FEE2E2; color: #991B1B;
+  }
+  .field-link {
+    color: var(--text-muted);
+    font-size: 12px;
+    border-bottom: 1px dashed var(--text-soft);
+    cursor: help;
+  }
+  .field-desc {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  /* ================= Responses ================= */
+  .response-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer;
+  }
+  .response-item:last-child { border-bottom: none; }
+  .response-item .chevron {
+    color: var(--text-soft);
+    font-size: 10px;
+    width: 10px;
+  }
+  .response-item .status {
+    font-weight: 600;
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+  }
+  .response-item .status-text {
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .status-2xx .status { color: #16A34A; }
+  .status-3xx .status { color: #0EA5E9; }
+  .status-4xx .status { color: #D97706; }
+  .status-5xx .status { color: #DC2626; }
+
+  /* ================= Right column ================= */
+  .code-column {
+    padding: 40px 32px 80px 0;
+    position: sticky;
+    top: 56px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .code-block {
+    background: var(--code-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    color: var(--code-text);
+    font-family: ui-monospace, monospace;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .code-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 11px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 12.5px;
+  }
+  .code-header .verb-tag {
+    font-weight: 700;
+    margin-right: 8px;
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+  }
+  .code-header .verb-tag.verb-post { color: var(--verb-post-dark); }
+  .code-header .verb-tag.verb-get { color: var(--verb-get-dark); }
+  .code-header .verb-tag.verb-put { color: var(--verb-put-dark); }
+  .code-header .verb-tag.verb-delete { color: var(--verb-delete-dark); }
+  .code-header .path {
+    color: #E5E5E5;
+    font-size: 12.5px;
+  }
+  .code-header .lang {
+    color: var(--text-soft);
+    font-size: 11.5px;
+  }
+
+  .code-body {
+    display: flex;
+    padding: 12px 0;
+    font-size: 12.5px;
+    line-height: 1.7;
+    overflow-x: auto;
+  }
+  .code-line-numbers {
+    padding: 0 10px 0 16px;
+    color: var(--code-line);
+    text-align: right;
+    user-select: none;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+  .code-line-numbers pre { color: var(--code-line); }
+  .code-content {
+    padding: 0 16px;
+    flex: 1;
+    min-width: 0;
+  }
+  .code-content pre { margin: 0; white-space: pre; }
+
+  /* syntax tokens */
+  .tk-string { color: #FCD34D; }
+  .tk-key    { color: #93C5FD; }
+  .tk-flag   { color: #C4B5FD; }
+  .tk-url    { color: #FDE68A; }
+  .tk-cmd    { color: var(--verb-post-dark); font-weight: 600; }
+  .tk-num    { color: #FCA5A5; }
+
+  .code-footer {
+    padding: 8px 12px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex; justify-content: flex-end;
+  }
+  .test-btn {
+    background: rgba(255,255,255,0.08);
+    color: #E5E5E5;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .test-btn:hover { background: rgba(255,255,255,0.14); }
+
+  .response-tabs {
+    display: flex; gap: 18px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .response-tab {
+    color: var(--text-soft);
+    font-size: 12.5px; font-weight: 500;
+    cursor: pointer;
+    padding: 2px 0;
+    font-family: ui-monospace, monospace;
+  }
+  .response-tab.active {
+    color: #E5E5E5;
+    border-bottom: 1.5px solid #E5E5E5;
+  }
+  .response-tab:hover:not(.active) { color: #D1D5DB; }
+
+  /* ================= Misc ================= */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+  .code-block ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">R</div>
+    <span>My App API</span>
+    <span class="brand-version">v1</span>
+  </div>
+  <div class="spacer"></div>
+  <a href="#" class="topbar-link">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.4.5 0 5.9 0 12.5c0 5.3 3.4 9.8 8.2 11.4.6.1.8-.3.8-.6v-2.1c-3.3.7-4-1.6-4-1.6-.5-1.4-1.3-1.8-1.3-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2 1-.3 2-.4 3-.4s2 .1 3 .4c2.3-1.6 3.3-1.2 3.3-1.2.7 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6C20.6 22.3 24 17.8 24 12.5 24 5.9 18.6.5 12 .5z"/></svg>
+    GitHub
+  </a>
+  <a href="#" class="topbar-btn">Dashboard</a>
+</header>
+
+<div class="container">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+      <span>Search</span>
+      <span class="kbd">⌘K</span>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Authentication
+      </div>
+      <ul class="endpoints">
+        <li><a href="#"><span class="label">Sign in</span><span class="verb verb-post">POST</span></a></li>
+        <li><a href="#"><span class="label">Sign out</span><span class="verb verb-delete">DEL</span></a></li>
+        <li><a href="#"><span class="label">Refresh token</span><span class="verb verb-post">POST</span></a></li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Users
+      </div>
+      <ul class="endpoints">
+        <li><a href="#" class="active"><span class="label">Create a User</span><span class="verb verb-post">POST</span></a></li>
+        <li><a href="#"><span class="label">List users</span><span class="verb verb-get">GET</span></a></li>
+        <li><a href="#"><span class="label">Get a user</span><span class="verb verb-get">GET</span></a></li>
+        <li><a href="#"><span class="label">Update a user</span><span class="verb verb-patch">PATCH</span></a></li>
+        <li><a href="#"><span class="label">Delete a user</span><span class="verb verb-delete">DEL</span></a></li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+        Posts
+      </div>
+      <ul class="endpoints">
+        <li><a href="#"><span class="label">List posts</span><span class="verb verb-get">GET</span></a></li>
+        <li><a href="#"><span class="label">Create a post</span><span class="verb verb-post">POST</span></a></li>
+        <li><a href="#"><span class="label">Get a post</span><span class="verb verb-get">GET</span></a></li>
+        <li><a href="#"><span class="label">Update a post</span><span class="verb verb-patch">PATCH</span></a></li>
+        <li><a href="#"><span class="label">Delete a post</span><span class="verb verb-delete">DEL</span></a></li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Comments
+      </div>
+      <ul class="endpoints">
+        <li><a href="#"><span class="label">List comments</span><span class="verb verb-get">GET</span></a></li>
+        <li><a href="#"><span class="label">Create a comment</span><span class="verb verb-post">POST</span></a></li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+        Webhooks
+      </div>
+      <ul class="endpoints">
+        <li><a href="#"><span class="label">List webhooks</span><span class="verb verb-get">GET</span></a></li>
+        <li><a href="#"><span class="label">Create a webhook</span><span class="verb verb-post">POST</span></a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN COLUMN ============ -->
+  <main class="main">
+
+    <div class="endpoint-path">
+      <span class="verb">POST</span>
+      <span class="path">/users</span>
+    </div>
+
+    <h1>Create a User</h1>
+    <p class="lead">Register a new user account in the system. Returns the newly created user record along with an authentication token that can be used for subsequent requests.</p>
+
+    <h2>Body</h2>
+
+    <div class="field">
+      <div class="field-row">
+        <span class="field-name">name</span>
+        <span class="field-type">string</span>
+        <span class="field-badge required">Required</span>
+        <span class="field-link">example</span>
+      </div>
+      <div class="field-desc">Full name of the user. Will be used as the display name across the app.</div>
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <span class="field-name">email</span>
+        <span class="field-type">string</span>
+        <span class="field-badge required">Required</span>
+        <span class="field-link">example</span>
+      </div>
+      <div class="field-desc">A unique email address. Must be a valid RFC 5322 address. Used for sign-in.</div>
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <span class="field-name">password</span>
+        <span class="field-type">string</span>
+        <span class="field-badge writeonly">write-only</span>
+        <span class="field-badge required">Required</span>
+        <span class="field-meta">min: 8</span>
+        <span class="field-link">example</span>
+      </div>
+      <div class="field-desc">Plain-text password. Hashed server-side with bcrypt before storage. Never returned in responses.</div>
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <span class="field-name">birthdate</span>
+        <span class="field-type">date</span>
+        <span class="field-link">example</span>
+      </div>
+      <div class="field-desc">ISO 8601 formatted date (YYYY-MM-DD). Optional.</div>
+    </div>
+
+    <h2>Responses</h2>
+
+    <div class="response-item status-2xx">
+      <span class="chevron">▶</span>
+      <span class="status">201</span>
+      <span class="status-text">Created — user successfully created</span>
+    </div>
+    <div class="response-item status-4xx">
+      <span class="chevron">▶</span>
+      <span class="status">400</span>
+      <span class="status-text">Bad Request</span>
+    </div>
+    <div class="response-item status-4xx">
+      <span class="chevron">▶</span>
+      <span class="status">401</span>
+      <span class="status-text">Unauthorized</span>
+    </div>
+    <div class="response-item status-4xx">
+      <span class="chevron">▶</span>
+      <span class="status">409</span>
+      <span class="status-text">Conflict — email already in use</span>
+    </div>
+    <div class="response-item status-4xx">
+      <span class="chevron">▶</span>
+      <span class="status">422</span>
+      <span class="status-text">Unprocessable Entity</span>
+    </div>
+
+  </main>
+
+  <!-- ============ CODE COLUMN ============ -->
+  <aside class="code-column">
+
+    <div class="code-block">
+      <div class="code-header">
+        <div>
+          <span class="verb-tag verb-post">POST</span>
+          <span class="path">/users</span>
+        </div>
+        <span class="lang">Shell · cURL</span>
+      </div>
+      <div class="code-body">
+        <div class="code-line-numbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9</pre></div>
+        <div class="code-content"><pre><span class="tk-cmd">curl</span> <span class="tk-flag">--request</span> POST \
+  <span class="tk-flag">--url</span> <span class="tk-url">https://api.example.com/users</span> \
+  <span class="tk-flag">--header</span> <span class="tk-string">'Content-Type: application/json'</span> \
+  <span class="tk-flag">--data</span> <span class="tk-string">'{
+    "user": {
+      "name": "Marc",
+      "email": "marc@example.com",
+      "password": "i-love-rails"
+    }
+  }'</span></pre></div>
+      </div>
+      <div class="code-footer">
+        <button class="test-btn">▶ Test Request</button>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="response-tabs">
+        <span class="response-tab active">201</span>
+        <span class="response-tab">400</span>
+        <span class="response-tab">409</span>
+        <span class="response-tab">422</span>
+      </div>
+      <div class="code-body">
+        <div class="code-line-numbers"><pre>1
+2
+3
+4
+5
+6
+7</pre></div>
+        <div class="code-content"><pre>{
+  <span class="tk-key">"id"</span>: <span class="tk-num">1</span>,
+  <span class="tk-key">"name"</span>: <span class="tk-string">"Marc"</span>,
+  <span class="tk-key">"email"</span>: <span class="tk-string">"marc@example.com"</span>,
+  <span class="tk-key">"token"</span>: <span class="tk-string">"eyJhbGciOiJIUzI1NiIs..."</span>
+}</pre></div>
+      </div>
+    </div>
+
+  </aside>
+
+</div>
+
+</body>
+</html>
