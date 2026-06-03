@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My App API</title>
+<style>
+  :root {
+    --primary: #CC0000;
+    --primary-soft: color-mix(in srgb, #CC0000 8%, transparent);
+    --secondary: #2E2E2E;
+    --accent: #D30001;
+    --bg: #FFFFFF;
+    --sidebar-bg: #FAFAFA;
+    --border: #EAEAEA;
+    --border-strong: #D4D4D4;
+    --text: #1F1F1F;
+    --text-muted: #6B7280;
+    --text-soft: #9CA3AF;
+
+    --code-bg: #1B1B1F;
+    --code-text: #E5E5E5;
+    --code-line: #4B5563;
+
+    --verb-get: #2563EB;
+    --verb-post: #16A34A;
+    --verb-put: #D97706;
+    --verb-patch: #D97706;
+    --verb-delete: #DC2626;
+
+    --verb-get-dark: #60A5FA;
+    --verb-post-dark: #4ADE80;
+    --verb-put-dark: #FBBF24;
+    --verb-patch-dark: #FBBF24;
+    --verb-delete-dark: #F87171;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    color: var(--text); background: var(--bg);
+    font-size: 14px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  code, pre, .mono { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+  .topbar {
+    height: 56px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 24px;
+    position: sticky; top: 0; background: var(--bg); z-index: 10;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; }
+  .brand-logo {
+    width: 26px; height: 26px; background: var(--primary); border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 13px; font-family: ui-monospace, monospace;
+  }
+  .spacer { flex: 1; }
+
+  .container { display: grid; grid-template-columns: 280px minmax(0, 1fr) 500px; align-items: start; }
+
+  .sidebar {
+    background: var(--sidebar-bg); border-right: 1px solid var(--border);
+    padding: 16px 12px 32px; position: sticky; top: 56px;
+    height: calc(100vh - 56px); overflow-y: auto;
+  }
+  .search {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 18px; color: var(--text-muted); font-size: 13px;
+  }
+  .search .kbd {
+    margin-left: auto; background: var(--sidebar-bg); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 6px; font-size: 11px;
+    font-family: ui-monospace, monospace; color: var(--text-muted);
+  }
+  .search input {
+    border: none; outline: none; background: transparent; flex: 1;
+    font: inherit; color: var(--text);
+  }
+  .search input::placeholder { color: var(--text-muted); }
+
+  .section { margin-bottom: 6px; }
+  .section-header {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+    font-weight: 600; font-size: 13px; color: var(--text);
+    border-radius: 6px; user-select: none;
+  }
+  .endpoints { list-style: none; padding: 0; }
+  .endpoints a {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 6px 10px 6px 22px; border-radius: 6px; font-size: 13px;
+    color: var(--text); margin-bottom: 1px;
+  }
+  .endpoints a:hover { background: rgba(0,0,0,0.04); }
+  .endpoints a.active { background: var(--primary-soft); color: var(--primary); font-weight: 500; }
+  .endpoints a .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .verb {
+    font-family: ui-monospace, monospace; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;
+  }
+  .verb-get    { color: var(--verb-get); }
+  .verb-post   { color: var(--verb-post); }
+  .verb-put    { color: var(--verb-put); }
+  .verb-patch  { color: var(--verb-patch); }
+  .verb-delete { color: var(--verb-delete); }
+
+  .main { padding: 40px 56px 80px; max-width: 760px; width: 100%; }
+
+  .endpoint-page { display: none; }
+  .endpoint-page.active { display: block; }
+
+  .endpoint-path {
+    display: flex; align-items: center; gap: 8px;
+    width: fit-content; max-width: 100%;
+    background: var(--sidebar-bg); border: 1px solid var(--border);
+    border-radius: 999px; padding: 4px 12px 4px 4px; font-size: 12px;
+    color: var(--text-muted); margin-bottom: 14px;
+  }
+  .endpoint-path .verb-pill {
+    padding: 3px 10px; border-radius: 999px; font-size: 11px;
+    font-family: ui-monospace, monospace; font-weight: 700;
+  }
+  .endpoint-path .verb-pill.verb-get    { background: rgba(37,99,235,0.12); color: var(--verb-get); }
+  .endpoint-path .verb-pill.verb-post   { background: rgba(22,163,74,0.12); color: var(--verb-post); }
+  .endpoint-path .verb-pill.verb-put,
+  .endpoint-path .verb-pill.verb-patch  { background: rgba(217,119,6,0.12); color: var(--verb-put); }
+  .endpoint-path .verb-pill.verb-delete { background: rgba(220,38,38,0.12); color: var(--verb-delete); }
+  .endpoint-path .path {
+    font-family: ui-monospace, monospace; color: var(--text); font-size: 12.5px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  }
+
+  .main h1 { font-size: 28px; font-weight: 700; line-height: 1.2; margin-bottom: 10px; letter-spacing: -0.01em; }
+  .main .lead { font-size: 15px; color: var(--text); margin-bottom: 32px; max-width: 620px; }
+  .main h2 {
+    font-size: 19px; font-weight: 600; padding-bottom: 10px;
+    border-bottom: 1px solid var(--border); margin: 36px 0 18px;
+    letter-spacing: -0.01em;
+  }
+  .main h2:first-of-type { margin-top: 0; }
+
+  .field { padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .field:last-child { border-bottom: none; }
+  .field-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .field-name { font-family: ui-monospace, monospace; font-weight: 600; font-size: 14px; color: var(--text); }
+  .field-type { color: var(--text-muted); font-size: 13px; }
+  .field-badge {
+    font-size: 11px; padding: 1px 7px; border-radius: 4px;
+    font-weight: 500; letter-spacing: 0.01em;
+  }
+  .field-badge.required  { background: #FEF3C7; color: #92400E; }
+  .field-badge.in-path   { background: #E0E7FF; color: #3730A3; }
+  .field-badge.format    { background: #ECFCCB; color: #3F6212; }
+  .field-badge.readonly  { background: #DBEAFE; color: #1E40AF; }
+  .field-badge.writeonly { background: #FEE2E2; color: #991B1B; }
+  .field-badge.nullable  { background: #F3F4F6; color: #4B5563; font-style: italic; }
+  .field-meta {
+    font-size: 11px; font-family: ui-monospace, monospace;
+    color: var(--text-soft); padding: 0 2px;
+  }
+  .field-meta.mono { color: var(--text-muted); }
+  .field-desc    { color: var(--text-muted); font-size: 13px; margin-top: 6px; line-height: 1.5; }
+  .field-enum    { color: var(--text-muted); font-size: 12.5px; margin-top: 4px; }
+  .field-enum code {
+    background: var(--sidebar-bg); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 4px; font-size: 11.5px;
+  }
+  .field-example { color: var(--text-muted); font-size: 12.5px; margin-top: 4px; }
+  .field-example code {
+    background: var(--sidebar-bg); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 4px; font-size: 11.5px;
+  }
+
+  .endpoint-meta {
+    font-size: 11px; padding: 2px 8px; border-radius: 999px;
+    font-weight: 500; margin-left: 4px;
+  }
+  .endpoint-meta.deprecated { background: #FEE2E2; color: #991B1B; font-weight: 600; }
+  .endpoint-meta.auth       { background: #1F2937; color: #E5E7EB; font-family: ui-monospace, monospace; }
+  .endpoint-meta.tag {
+    background: var(--sidebar-bg); color: var(--text-muted); border: 1px solid var(--border);
+    cursor: pointer; font-family: inherit; font-size: 11px;
+    padding: 2px 8px; border-radius: 999px; font-weight: 500;
+    transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  }
+  .endpoint-meta.tag:hover { background: var(--border); color: var(--text); }
+  .endpoint-meta.tag.active {
+    background: var(--primary-soft); color: var(--primary); border-color: var(--primary);
+  }
+  .endpoint-meta.tag:focus-visible {
+    outline: 2px solid var(--primary); outline-offset: 1px;
+  }
+
+  .active-tag-filter {
+    display: flex; align-items: center; gap: 6px;
+    margin: 0 4px 14px;
+    padding: 6px 8px 6px 12px;
+    background: var(--primary-soft); border: 1px solid var(--primary);
+    border-radius: 8px;
+    font-size: 12px; color: var(--primary);
+  }
+  .active-tag-filter .label { font-weight: 500; }
+  .active-tag-filter .tag-name {
+    font-family: ui-monospace, monospace; font-weight: 600;
+    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .active-tag-filter .clear-filter {
+    background: transparent; border: none; cursor: pointer;
+    color: var(--primary); font-size: 16px; line-height: 1;
+    padding: 0 4px; border-radius: 4px;
+  }
+  .active-tag-filter .clear-filter:hover { background: rgba(204,0,0,0.12); }
+  .active-tag-filter .clear-filter:focus-visible {
+    outline: 2px solid var(--primary); outline-offset: 1px;
+  }
+
+  .main h1.deprecated {
+    text-decoration: line-through;
+    text-decoration-color: rgba(220, 38, 38, 0.5);
+    text-decoration-thickness: 2px;
+    color: var(--text-muted);
+  }
+
+  .response-block {
+    margin: 20px 0 28px; padding: 16px 18px;
+    background: var(--sidebar-bg); border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .response-block-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 6px;
+  }
+  .response-status {
+    font-family: ui-monospace, monospace; font-weight: 700; font-size: 13px;
+  }
+  .response-status.status-2xx { color: #16A34A; }
+  .response-status.status-3xx { color: #0EA5E9; }
+  .response-status.status-4xx { color: #D97706; }
+  .response-status.status-5xx { color: #DC2626; }
+  .response-block-desc { color: var(--text); font-size: 14px; }
+  .response-subhead {
+    font-size: 13px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    margin: 14px 0 4px; padding: 0;
+    border-bottom: none;
+  }
+  .response-block .field:last-of-type { border-bottom: none; }
+
+  .empty-state {
+    padding: 80px 24px; text-align: center; color: var(--text-muted);
+  }
+  .empty-state h1 { color: var(--text); margin-bottom: 12px; }
+
+  .code-column {
+    padding: 40px 32px 80px 0; position: sticky; top: 56px;
+    height: calc(100vh - 56px); overflow-y: auto;
+  }
+  .code-pane { display: none; flex-direction: column; gap: 16px; }
+  .code-pane.active { display: flex; }
+
+  .code-block {
+    background: var(--code-bg); border-radius: 12px; overflow: hidden;
+    color: var(--code-text); font-family: ui-monospace, monospace;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .code-header {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 12.5px;
+  }
+  .code-header > div {
+    display: flex; align-items: center;
+    min-width: 0; flex: 1; overflow: hidden;
+  }
+  .code-header .verb-tag { font-weight: 700; margin-right: 8px; font-size: 11.5px; letter-spacing: 0.04em; flex-shrink: 0; }
+  .code-header .verb-tag.verb-get    { color: var(--verb-get-dark); }
+  .code-header .verb-tag.verb-post   { color: var(--verb-post-dark); }
+  .code-header .verb-tag.verb-put    { color: var(--verb-put-dark); }
+  .code-header .verb-tag.verb-patch  { color: var(--verb-patch-dark); }
+  .code-header .verb-tag.verb-delete { color: var(--verb-delete-dark); }
+  .code-header .path {
+    color: #E5E5E5; font-size: 12.5px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  }
+  .code-header .lang { color: var(--text-soft); font-size: 11.5px; flex-shrink: 0; }
+  .code-header-right {
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  }
+  .response-title {
+    color: #E5E5E5; font-size: 12.5px; font-weight: 500;
+  }
+  .copy-btn {
+    background: transparent; border: none; cursor: pointer;
+    padding: 4px; border-radius: 4px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--text-soft);
+    transition: color 120ms ease, background 120ms ease;
+  }
+  .copy-btn:hover { color: #E5E5E5; background: rgba(255,255,255,0.08); }
+  .copy-btn:active { background: rgba(255,255,255,0.12); }
+  .copy-btn:focus-visible {
+    outline: 2px solid rgba(255,255,255,0.4); outline-offset: 1px;
+  }
+  .copy-btn .check-icon { display: none; }
+  .copy-btn.copied .copy-icon { display: none; }
+  .copy-btn.copied .check-icon { display: inline; color: #4ADE80; }
+  .copy-btn.copied { color: #4ADE80; }
+
+  .response-tabs {
+    display: flex; gap: 18px; padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .response-tab {
+    color: var(--text-soft); font-size: 12.5px; font-weight: 500;
+    cursor: pointer; padding: 2px 0; font-family: ui-monospace, monospace;
+    border-bottom: 1.5px solid transparent;
+  }
+  .response-tab.active { color: #E5E5E5; border-bottom-color: #E5E5E5; }
+  .response-tab.status-2xx.active { color: #4ADE80; border-bottom-color: #4ADE80; }
+  .response-tab.status-3xx.active { color: #60A5FA; border-bottom-color: #60A5FA; }
+  .response-tab.status-4xx.active { color: #FBBF24; border-bottom-color: #FBBF24; }
+  .response-tab.status-5xx.active { color: #F87171; border-bottom-color: #F87171; }
+  .response-tab:hover:not(.active) { color: #D1D5DB; }
+
+  .response-body { display: none; }
+  .response-body.active { display: block; }
+
+  .code-body { display: flex; padding: 12px 0; font-size: 12.5px; line-height: 1.7; overflow-x: auto; }
+  .code-line-numbers {
+    padding: 0 10px 0 16px; color: var(--code-line); text-align: right;
+    user-select: none; border-right: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
+  }
+  .code-content { padding: 0 16px; flex: 1; min-width: 0; }
+  .code-content pre { margin: 0; white-space: pre; }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+  .code-block ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">M</div>
+    <span>My App API</span>
+  </div>
+  <div class="spacer"></div>
+</header>
+
+<div class="container">
+
+  <aside class="sidebar">
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+      <input type="search" placeholder="Search endpoints" id="rad-search">
+      <span class="kbd">/</span>
+    </div>
+
+    <div class="active-tag-filter" id="rad-active-tag-filter" hidden>
+      <span class="label">Filtered by:</span>
+      <span class="tag-name" aria-live="polite"></span>
+      <button type="button" class="clear-filter" aria-label="Clear tag filter">×</button>
+    </div>
+
+          <div class="section" data-section="users">
+        <div class="section-header">Users</div>
+        <ul class="endpoints">
+                      <li data-endpoint-label="Create User" data-endpoint-tags='[&quot;public&quot;,&quot;auth&quot;]'>
+              <a href="#users--post--users" data-endpoint="users--post--users">
+                <span class="label">Create User</span>
+                <span class="verb verb-post">POST</span>
+              </a>
+            </li>
+                      <li data-endpoint-label="SSO Sign-In">
+              <a href="#users--post--users-sso" data-endpoint="users--post--users-sso">
+                <span class="label">SSO Sign-In</span>
+                <span class="verb verb-post">POST</span>
+              </a>
+            </li>
+                  </ul>
+      </div>
+      </aside>
+
+  <main class="main">
+                            <section class="endpoint-page" id="users--post--users" data-endpoint-page="users--post--users">
+            <div class="endpoint-path">
+              <span class="verb-pill verb-post">POST</span>
+              <span class="path">/users</span>
+                                            <span class="endpoint-meta auth">🔒 Bearer auth</span>
+                                            <button type="button" class="endpoint-meta tag" data-tag-filter="public" aria-pressed="false">public</button>
+                              <button type="button" class="endpoint-meta tag" data-tag-filter="auth" aria-pressed="false">auth</button>
+                          </div>
+                          <h1>Create User</h1>
+                                      <p class="lead">Register a new user account.</p>
+            
+                          <h2>Headers</h2>
+              <div class="field">
+<div class="field-row">
+<span class="field-name">Authorization</span>
+<span class="field-type">string</span>
+<span class="field-badge required">Required</span>
+</div>
+<div class="field-desc">Bearer token from /sessions endpoint</div>
+<div class="field-example">Example: <code>Bearer eyJhbGciOiJIUzI1NiIs...</code></div>
+</div>
+<div class="field">
+<div class="field-row">
+<span class="field-name">X-Idempotency-Key</span>
+<span class="field-type">string</span>
+</div>
+<div class="field-desc">Unique key to make this request idempotent.</div>
+</div>
+            
+            
+                          <h2>Body</h2>
+              <div class="field">
+<div class="field-row">
+<span class="field-name">name</span>
+<span class="field-type">string</span>
+<span class="field-badge required">Required</span>
+</div>
+<div class="field-desc">Full name of the user.</div>
+<div class="field-example">Example: <code>Marc Andersson</code></div>
+</div>
+<div class="field">
+<div class="field-row">
+<span class="field-name">email</span>
+<span class="field-type">string</span>
+<span class="field-badge format">email</span>
+<span class="field-badge required">Required</span>
+</div>
+<div class="field-desc">Unique email.</div>
+<div class="field-example">Example: <code>marc@example.com</code></div>
+</div>
+<div class="field">
+<div class="field-row">
+<span class="field-name">password</span>
+<span class="field-type">string</span>
+<span class="field-badge writeonly">write-only</span>
+<span class="field-badge required">Required</span>
+<span class="field-meta">min: 8</span>
+<span class="field-meta">max: 72</span>
+</div>
+<div class="field-desc">Plain-text password. Hashed server-side.</div>
+</div>
+<div class="field">
+<div class="field-row">
+<span class="field-name">role</span>
+<span class="field-type">string</span>
+<span class="field-meta">default: user</span>
+</div>
+<div class="field-enum">one of: <code>user</code> · <code>admin</code> · <code>guest</code></div>
+<div class="field-desc">User&#39;s permission level.</div>
+</div>
+<div class="field">
+<div class="field-row">
+<span class="field-name">age</span>
+<span class="field-type">integer</span>
+<span class="field-badge nullable">nullable</span>
+<span class="field-meta">min: 0</span>
+<span class="field-meta">max: 150</span>
+</div>
+</div>
+<div class="field">
+<div class="field-row">
+<span class="field-name">zip</span>
+<span class="field-type">string</span>
+<span class="field-meta mono">pattern: ^\d{5}$</span>
+</div>
+<div class="field-desc">5-digit US ZIP.</div>
+</div>
+            
+                          <h2>Responses</h2>
+                              <div class="response-block">
+                  <div class="response-block-header">
+                    <span class="response-status status-2xx">201</span>
+                                          <span class="response-block-desc">User created successfully</span>
+                                      </div>
+                                      <h3 class="response-subhead">Headers</h3>
+                    <div class="field">
+<div class="field-row">
+<span class="field-name">Location</span>
+<span class="field-type">string</span>
+</div>
+<div class="field-desc">Canonical URL of the created resource.</div>
+<div class="field-example">Example: <code>https://api.example.com/users/42</code></div>
+</div>
+                                                        <h3 class="response-subhead">Schema</h3>
+                    <div class="field">
+<div class="field-row">
+<span class="field-name">id</span>
+<span class="field-type">integer</span>
+<span class="field-badge readonly">read-only</span>
+</div>
+<div class="field-example">Example: <code>42</code></div>
+</div>
+<div class="field">
+<div class="field-row">
+<span class="field-name">name</span>
+<span class="field-type">string</span>
+</div>
+<div class="field-example">Example: <code>Marc Andersson</code></div>
+</div>
+<div class="field">
+<div class="field-row">
+<span class="field-name">email</span>
+<span class="field-type">string</span>
+<span class="field-badge format">email</span>
+</div>
+</div>
+<div class="field">
+<div class="field-row">
+<span class="field-name">token</span>
+<span class="field-type">string</span>
+<span class="field-badge readonly">read-only</span>
+</div>
+<div class="field-desc">JWT auth token, valid for 7 days.</div>
+</div>
+                                  </div>
+                              <div class="response-block">
+                  <div class="response-block-header">
+                    <span class="response-status status-4xx">409</span>
+                                          <span class="response-block-desc">Conflict — email already in use</span>
+                                      </div>
+                                                    </div>
+                              <div class="response-block">
+                  <div class="response-block-header">
+                    <span class="response-status status-4xx">422</span>
+                                          <span class="response-block-desc">Validation failed</span>
+                                      </div>
+                                                        <h3 class="response-subhead">Schema</h3>
+                    <div class="field">
+<div class="field-row">
+<span class="field-name">errors</span>
+<span class="field-type">object</span>
+</div>
+<div class="field-desc">Map of field name → array of validation messages.</div>
+</div>
+                                  </div>
+                                    </section>
+                  <section class="endpoint-page" id="users--post--users-sso" data-endpoint-page="users--post--users-sso">
+            <div class="endpoint-path">
+              <span class="verb-pill verb-post">POST</span>
+              <span class="path">/users/sso</span>
+                              <span class="endpoint-meta deprecated">Deprecated</span>
+                                                      </div>
+                          <h1 class="deprecated">SSO Sign-In</h1>
+                                      <p class="lead">Legacy SSO flow.</p>
+            
+            
+            
+            
+                      </section>
+                    </main>
+
+  <aside class="code-column">
+                            <div class="code-pane" data-code-pane="users--post--users">
+                          <div class="code-block">
+                <div class="code-header">
+                  <div>
+                    <span class="verb-tag verb-post">POST</span>
+                    <span class="path">/users</span>
+                  </div>
+                  <div class="code-header-right">
+                    <span class="lang">Shell · cURL</span>
+                    <button type="button" class="copy-btn" aria-label="Copy to clipboard">
+                      <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      <svg class="check-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </button>
+                  </div>
+                </div>
+                                <div class="code-body">
+                  <div class="code-line-numbers"><pre>1
+2
+3
+4
+5
+6</pre></div>
+                  <div class="code-content"><pre>curl --request POST \
+  --url https://api.example.com/users \
+  --header &#39;Authorization: Bearer eyJhbGciOiJIUzI1NiIs...&#39; \
+  --header &#39;X-Idempotency-Key: example&#39; \
+  --header &#39;Content-Type: application/json&#39; \
+  --data &#39;{ &quot;user&quot;: { &quot;email&quot;: &quot;marc@example.com&quot;, &quot;password&quot;: &quot;i-love-rails&quot; } }&#39;</pre></div>
+                </div>
+              </div>
+            
+                                        <div class="code-block" data-responses-for="users--post--users">
+                <div class="code-header">
+                  <span class="response-title">Response</span>
+                  <div class="code-header-right">
+                    <button type="button" class="copy-btn" aria-label="Copy to clipboard">
+                      <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      <svg class="check-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="response-tabs">
+                                      <span class="response-tab status-2xx active"
+                          data-resp-status="201"
+                          data-resp-target="users--post--users"
+                          title="User created successfully">201</span>
+                                      <span class="response-tab status-4xx"
+                          data-resp-status="409"
+                          data-resp-target="users--post--users"
+                          title="Conflict — email already in use">409</span>
+                                      <span class="response-tab status-4xx"
+                          data-resp-status="422"
+                          data-resp-target="users--post--users"
+                          title="Validation failed">422</span>
+                                  </div>
+                                                    <div class="response-body active"
+                       data-resp-body="201"
+                       data-resp-target="users--post--users">
+                    <div class="code-body">
+                      <div class="code-line-numbers"><pre>1
+2
+3
+4
+5
+6</pre></div>
+                      <div class="code-content"><pre>{
+  &quot;id&quot;: 42,
+  &quot;name&quot;: &quot;Marc Andersson&quot;,
+  &quot;email&quot;: &quot;marc@example.com&quot;,
+  &quot;token&quot;: &quot;eyJhbGciOiJIUzI1NiIs...&quot;
+}</pre></div>
+                    </div>
+                  </div>
+                                                    <div class="response-body "
+                       data-resp-body="409"
+                       data-resp-target="users--post--users">
+                    <div class="code-body">
+                      <div class="code-line-numbers"><pre>1</pre></div>
+                      <div class="code-content"><pre>{ &quot;error&quot;: &quot;email_taken&quot; }</pre></div>
+                    </div>
+                  </div>
+                                                    <div class="response-body "
+                       data-resp-body="422"
+                       data-resp-target="users--post--users">
+                    <div class="code-body">
+                      <div class="code-line-numbers"><pre>1</pre></div>
+                      <div class="code-content"><pre>{ &quot;errors&quot;: { &quot;password&quot;: [&quot;too short&quot;] } }</pre></div>
+                    </div>
+                  </div>
+                              </div>
+                      </div>
+                                <div class="code-pane" data-code-pane="users--post--users-sso">
+                          <div class="code-block">
+                <div class="code-header">
+                  <div>
+                    <span class="verb-tag verb-post">POST</span>
+                    <span class="path">/users/sso</span>
+                  </div>
+                  <div class="code-header-right">
+                    <span class="lang">Shell · cURL</span>
+                    <button type="button" class="copy-btn" aria-label="Copy to clipboard">
+                      <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      <svg class="check-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </button>
+                  </div>
+                </div>
+                                <div class="code-body">
+                  <div class="code-line-numbers"><pre>1
+2</pre></div>
+                  <div class="code-content"><pre>curl --request POST \
+  --url https://api.example.com/users/sso</pre></div>
+                </div>
+              </div>
+            
+                                        <div class="code-block" data-responses-for="users--post--users-sso">
+                <div class="code-header">
+                  <span class="response-title">Response</span>
+                  <div class="code-header-right">
+                    <button type="button" class="copy-btn" aria-label="Copy to clipboard">
+                      <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      <svg class="check-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="response-tabs">
+                                      <span class="response-tab status-2xx active"
+                          data-resp-status="200"
+                          data-resp-target="users--post--users-sso"
+                          title="">200</span>
+                                  </div>
+                                                    <div class="response-body active"
+                       data-resp-body="200"
+                       data-resp-target="users--post--users-sso">
+                    <div class="code-body">
+                      <div class="code-line-numbers"><pre>1</pre></div>
+                      <div class="code-content"><pre>{}</pre></div>
+                    </div>
+                  </div>
+                              </div>
+                      </div>
+                    </aside>
+
+</div>
+
+<script>
+(function() {
+  const sidebarLinks = document.querySelectorAll('.endpoints a[data-endpoint]');
+  const pages        = document.querySelectorAll('[data-endpoint-page]');
+  const codePanes    = document.querySelectorAll('[data-code-pane]');
+
+  function activate(id) {
+    if (!id) return;
+    sidebarLinks.forEach(a => a.classList.toggle('active', a.dataset.endpoint === id));
+    pages.forEach(p      => p.classList.toggle('active', p.dataset.endpointPage === id));
+    codePanes.forEach(c  => c.classList.toggle('active', c.dataset.codePane === id));
+  }
+
+  function pickInitial() {
+    const fromHash = location.hash ? location.hash.slice(1) : null;
+    if (fromHash && document.getElementById(fromHash)) return fromHash;
+    const first = sidebarLinks[0];
+    return first ? first.dataset.endpoint : null;
+  }
+
+  sidebarLinks.forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const id = a.dataset.endpoint;
+      history.replaceState(null, '', '#' + id);
+      activate(id);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
+  });
+
+  window.addEventListener('hashchange', () => activate(location.hash.slice(1)));
+
+  activate(pickInitial());
+
+  // Copy-to-clipboard buttons (curl + response)
+  function getCopyText(btn) {
+    const block = btn.closest('.code-block');
+    if (!block) return '';
+    // Response box: copy whichever tab is currently active.
+    const activeResp = block.querySelector('.response-body.active .code-content pre');
+    if (activeResp) return activeResp.textContent;
+    // Curl box: only one <pre> in code-content.
+    const pre = block.querySelector('.code-content pre');
+    return pre ? pre.textContent : '';
+  }
+
+  function flashCopied(btn) {
+    btn.classList.add('copied');
+    setTimeout(() => btn.classList.remove('copied'), 1500);
+  }
+
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      try { await navigator.clipboard.writeText(text); return true; } catch (_) { /* fall through */ }
+    }
+    // Legacy fallback for non-secure contexts (HTTP, file://).
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const text = getCopyText(btn);
+      if (!text) return;
+      const ok = await copyText(text);
+      if (ok) flashCopied(btn);
+    });
+  });
+
+  // Response status tab switching
+  document.querySelectorAll('.response-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.respTarget;
+      const status = tab.dataset.respStatus;
+      document.querySelectorAll('.response-tab[data-resp-target="' + target + '"]').forEach(t => {
+        t.classList.toggle('active', t === tab);
+      });
+      document.querySelectorAll('.response-body[data-resp-target="' + target + '"]').forEach(b => {
+        b.classList.toggle('active', b.dataset.respBody === status);
+      });
+    });
+  });
+
+  // Sidebar filters — text search (unchanged) AND tag click filter (new).
+  // Both compose: a sidebar item is visible only if it matches BOTH the
+  // current search query and the active tag filter.
+  const search     = document.getElementById('rad-search');
+  const filterPill = document.getElementById('rad-active-tag-filter');
+  const filterName = filterPill?.querySelector('.tag-name');
+  const clearBtn   = filterPill?.querySelector('.clear-filter');
+  let activeTag    = null;
+
+  function applyFilters() {
+    const q = (search?.value || '').toLowerCase().trim();
+    document.querySelectorAll('.endpoints li').forEach(li => {
+      const label = (li.dataset.endpointLabel || '').toLowerCase();
+      let tags = [];
+      try { tags = JSON.parse(li.dataset.endpointTags || '[]'); } catch (_) {}
+
+      const matchesSearch = !q || label.includes(q);
+      const matchesTag    = !activeTag || tags.includes(activeTag);
+      li.style.display = matchesSearch && matchesTag ? '' : 'none';
+    });
+    document.querySelectorAll('.section').forEach(section => {
+      const visible = Array.from(section.querySelectorAll('li')).some(li => li.style.display !== 'none');
+      section.style.display = visible ? '' : 'none';
+    });
+  }
+
+  function setTagFilter(tag) {
+    // Clicking the same tag toggles off; clicking a different one switches.
+    activeTag = (activeTag === tag) ? null : tag;
+
+    // Reflect on every copy of the badge across the document.
+    document.querySelectorAll('.endpoint-meta.tag').forEach(btn => {
+      const isActive = activeTag !== null && btn.dataset.tagFilter === activeTag;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+
+    if (filterPill) {
+      filterPill.hidden = !activeTag;
+      if (activeTag) filterName.textContent = activeTag;
+    }
+    applyFilters();
+  }
+
+  document.querySelectorAll('.endpoint-meta.tag').forEach(btn => {
+    btn.addEventListener('click', () => setTagFilter(btn.dataset.tagFilter));
+  });
+  clearBtn?.addEventListener('click', () => setTagFilter(activeTag));   // toggle off
+
+  if (search) {
+    search.addEventListener('input', applyFilters);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== search) {
+        e.preventDefault();
+        search.focus();
+      }
+    });
+  }
+})();
+</script>
+
+</body>
+</html>

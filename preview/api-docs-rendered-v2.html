@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My App API</title>
+<style>
+  :root {
+    --primary: #CC0000;
+    --primary-soft: color-mix(in srgb, #CC0000 8%, transparent);
+    --secondary: #2E2E2E;
+    --accent: #D30001;
+    --bg: #FFFFFF;
+    --sidebar-bg: #FAFAFA;
+    --border: #EAEAEA;
+    --border-strong: #D4D4D4;
+    --text: #1F1F1F;
+    --text-muted: #6B7280;
+    --text-soft: #9CA3AF;
+
+    --code-bg: #1B1B1F;
+    --code-text: #E5E5E5;
+    --code-line: #4B5563;
+
+    --verb-get: #2563EB;
+    --verb-post: #16A34A;
+    --verb-put: #D97706;
+    --verb-patch: #D97706;
+    --verb-delete: #DC2626;
+
+    --verb-get-dark: #60A5FA;
+    --verb-post-dark: #4ADE80;
+    --verb-put-dark: #FBBF24;
+    --verb-patch-dark: #FBBF24;
+    --verb-delete-dark: #F87171;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    color: var(--text); background: var(--bg);
+    font-size: 14px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  code, pre, .mono { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+  .topbar {
+    height: 56px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 24px;
+    position: sticky; top: 0; background: var(--bg); z-index: 10;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; }
+  .brand-logo {
+    width: 26px; height: 26px; background: var(--primary); border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 13px; font-family: ui-monospace, monospace;
+  }
+  .spacer { flex: 1; }
+
+  .container { display: grid; grid-template-columns: 280px minmax(0, 1fr) 500px; align-items: start; }
+
+  .sidebar {
+    background: var(--sidebar-bg); border-right: 1px solid var(--border);
+    padding: 16px 12px 32px; position: sticky; top: 56px;
+    height: calc(100vh - 56px); overflow-y: auto;
+  }
+  .search {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 18px; color: var(--text-muted); font-size: 13px;
+  }
+  .search .kbd {
+    margin-left: auto; background: var(--sidebar-bg); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 6px; font-size: 11px;
+    font-family: ui-monospace, monospace; color: var(--text-muted);
+  }
+  .search input {
+    border: none; outline: none; background: transparent; flex: 1;
+    font: inherit; color: var(--text);
+  }
+  .search input::placeholder { color: var(--text-muted); }
+
+  .section { margin-bottom: 6px; }
+  .section-header {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+    font-weight: 600; font-size: 13px; color: var(--text);
+    border-radius: 6px; user-select: none;
+  }
+  .endpoints { list-style: none; padding: 0; }
+  .endpoints a {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 6px 10px 6px 22px; border-radius: 6px; font-size: 13px;
+    color: var(--text); margin-bottom: 1px;
+  }
+  .endpoints a:hover { background: rgba(0,0,0,0.04); }
+  .endpoints a.active { background: var(--primary-soft); color: var(--primary); font-weight: 500; }
+  .endpoints a .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .verb {
+    font-family: ui-monospace, monospace; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;
+  }
+  .verb-get    { color: var(--verb-get); }
+  .verb-post   { color: var(--verb-post); }
+  .verb-put    { color: var(--verb-put); }
+  .verb-patch  { color: var(--verb-patch); }
+  .verb-delete { color: var(--verb-delete); }
+
+  .main { padding: 40px 56px 80px; max-width: 760px; width: 100%; }
+
+  .endpoint-page { display: none; }
+  .endpoint-page.active { display: block; }
+
+  .endpoint-path {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--sidebar-bg); border: 1px solid var(--border);
+    border-radius: 999px; padding: 4px 12px 4px 4px; font-size: 12px;
+    color: var(--text-muted); margin-bottom: 14px;
+  }
+  .endpoint-path .verb-pill {
+    padding: 3px 10px; border-radius: 999px; font-size: 11px;
+    font-family: ui-monospace, monospace; font-weight: 700;
+  }
+  .endpoint-path .verb-pill.verb-get    { background: rgba(37,99,235,0.12); color: var(--verb-get); }
+  .endpoint-path .verb-pill.verb-post   { background: rgba(22,163,74,0.12); color: var(--verb-post); }
+  .endpoint-path .verb-pill.verb-put,
+  .endpoint-path .verb-pill.verb-patch  { background: rgba(217,119,6,0.12); color: var(--verb-put); }
+  .endpoint-path .verb-pill.verb-delete { background: rgba(220,38,38,0.12); color: var(--verb-delete); }
+  .endpoint-path .path { font-family: ui-monospace, monospace; color: var(--text); font-size: 12.5px; }
+
+  .main h1 { font-size: 28px; font-weight: 700; line-height: 1.2; margin-bottom: 10px; letter-spacing: -0.01em; }
+  .main .lead { font-size: 15px; color: var(--text); margin-bottom: 32px; max-width: 620px; }
+  .main h2 {
+    font-size: 19px; font-weight: 600; padding-bottom: 10px;
+    border-bottom: 1px solid var(--border); margin: 36px 0 18px;
+    letter-spacing: -0.01em;
+  }
+  .main h2:first-of-type { margin-top: 0; }
+
+  .field { padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .field:last-child { border-bottom: none; }
+  .field-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .field-name { font-family: ui-monospace, monospace; font-weight: 600; font-size: 14px; color: var(--text); }
+  .field-type { color: var(--text-muted); font-size: 13px; }
+  .field-badge {
+    font-size: 11px; padding: 1px 7px; border-radius: 4px;
+    font-weight: 500; letter-spacing: 0.01em;
+  }
+  .field-badge.required { background: #FEF3C7; color: #92400E; }
+  .field-badge.in-path  { background: #E0E7FF; color: #3730A3; }
+  .field-desc { color: var(--text-muted); font-size: 13px; margin-top: 6px; line-height: 1.5; }
+
+  .empty-state {
+    padding: 80px 24px; text-align: center; color: var(--text-muted);
+  }
+  .empty-state h1 { color: var(--text); margin-bottom: 12px; }
+
+  .code-column {
+    padding: 40px 32px 80px 0; position: sticky; top: 56px;
+    height: calc(100vh - 56px); overflow-y: auto;
+  }
+  .code-pane { display: none; flex-direction: column; gap: 16px; }
+  .code-pane.active { display: flex; }
+
+  .code-block {
+    background: var(--code-bg); border-radius: 12px; overflow: hidden;
+    color: var(--code-text); font-family: ui-monospace, monospace;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .code-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 12.5px;
+  }
+  .code-header .verb-tag { font-weight: 700; margin-right: 8px; font-size: 11.5px; letter-spacing: 0.04em; }
+  .code-header .verb-tag.verb-get    { color: var(--verb-get-dark); }
+  .code-header .verb-tag.verb-post   { color: var(--verb-post-dark); }
+  .code-header .verb-tag.verb-put    { color: var(--verb-put-dark); }
+  .code-header .verb-tag.verb-patch  { color: var(--verb-patch-dark); }
+  .code-header .verb-tag.verb-delete { color: var(--verb-delete-dark); }
+  .code-header .path { color: #E5E5E5; font-size: 12.5px; }
+  .code-header .lang { color: var(--text-soft); font-size: 11.5px; }
+
+  .response-tabs {
+    display: flex; gap: 18px; padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .response-tab {
+    color: var(--text-soft); font-size: 12.5px; font-weight: 500;
+    cursor: pointer; padding: 2px 0; font-family: ui-monospace, monospace;
+    border-bottom: 1.5px solid transparent;
+  }
+  .response-tab.active { color: #E5E5E5; border-bottom-color: #E5E5E5; }
+  .response-tab.status-2xx.active { color: #4ADE80; border-bottom-color: #4ADE80; }
+  .response-tab.status-3xx.active { color: #60A5FA; border-bottom-color: #60A5FA; }
+  .response-tab.status-4xx.active { color: #FBBF24; border-bottom-color: #FBBF24; }
+  .response-tab.status-5xx.active { color: #F87171; border-bottom-color: #F87171; }
+  .response-tab:hover:not(.active) { color: #D1D5DB; }
+
+  .response-body { display: none; }
+  .response-body.active { display: block; }
+
+  .code-body { display: flex; padding: 12px 0; font-size: 12.5px; line-height: 1.7; overflow-x: auto; }
+  .code-line-numbers {
+    padding: 0 10px 0 16px; color: var(--code-line); text-align: right;
+    user-select: none; border-right: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
+  }
+  .code-content { padding: 0 16px; flex: 1; min-width: 0; }
+  .code-content pre { margin: 0; white-space: pre; }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+  .code-block ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">M</div>
+    <span>My App API</span>
+  </div>
+  <div class="spacer"></div>
+</header>
+
+<div class="container">
+
+  <aside class="sidebar">
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+      <input type="search" placeholder="Search endpoints" id="rad-search">
+      <span class="kbd">/</span>
+    </div>
+
+          <div class="section" data-section="users">
+        <div class="section-header">Users</div>
+        <ul class="endpoints">
+                      <li data-endpoint-label="Create User">
+              <a href="#users--post--users" data-endpoint="users--post--users">
+                <span class="label">Create User</span>
+                <span class="verb verb-post">POST</span>
+              </a>
+            </li>
+                      <li data-endpoint-label="Show User">
+              <a href="#users--get--users-id" data-endpoint="users--get--users-id">
+                <span class="label">Show User</span>
+                <span class="verb verb-get">GET</span>
+              </a>
+            </li>
+                      <li data-endpoint-label="Delete User">
+              <a href="#users--delete--users-id" data-endpoint="users--delete--users-id">
+                <span class="label">Delete User</span>
+                <span class="verb verb-delete">DEL</span>
+              </a>
+            </li>
+                  </ul>
+      </div>
+          <div class="section" data-section="posts">
+        <div class="section-header">Posts</div>
+        <ul class="endpoints">
+                      <li data-endpoint-label="List Posts">
+              <a href="#posts--get--posts" data-endpoint="posts--get--posts">
+                <span class="label">List Posts</span>
+                <span class="verb verb-get">GET</span>
+              </a>
+            </li>
+                  </ul>
+      </div>
+      </aside>
+
+  <main class="main">
+                            <section class="endpoint-page" id="users--post--users" data-endpoint-page="users--post--users">
+            <div class="endpoint-path">
+              <span class="verb-pill verb-post">POST</span>
+              <span class="path">/users</span>
+            </div>
+            <h1>Create User</h1>
+                          <p class="lead">Register a new user. Returns the user record plus an auth token.</p>
+            
+            
+                          <h2>Body</h2>
+                              <div class="field">
+                  <div class="field-row">
+                    <span class="field-name">name</span>
+                    <span class="field-type">string</span>
+                    <span class="field-badge required">Required</span>                  </div>
+                                  </div>
+                              <div class="field">
+                  <div class="field-row">
+                    <span class="field-name">email</span>
+                    <span class="field-type">string</span>
+                    <span class="field-badge required">Required</span>                  </div>
+                                  </div>
+                              <div class="field">
+                  <div class="field-row">
+                    <span class="field-name">password</span>
+                    <span class="field-type">string</span>
+                    <span class="field-badge required">Required</span>                  </div>
+                                  </div>
+                              <div class="field">
+                  <div class="field-row">
+                    <span class="field-name">age</span>
+                    <span class="field-type">integer</span>
+                                      </div>
+                                  </div>
+                                    </section>
+                  <section class="endpoint-page" id="users--get--users-id" data-endpoint-page="users--get--users-id">
+            <div class="endpoint-path">
+              <span class="verb-pill verb-get">GET</span>
+              <span class="path">/users/:id</span>
+            </div>
+            <h1>Show User</h1>
+            
+                          <h2>Params</h2>
+                              <div class="field">
+                  <div class="field-row">
+                    <span class="field-name">id</span>
+                    <span class="field-type">integer</span>
+                    <span class="field-badge in-path">path</span>                    <span class="field-badge required">Required</span>                  </div>
+                                  </div>
+                          
+                      </section>
+                  <section class="endpoint-page" id="users--delete--users-id" data-endpoint-page="users--delete--users-id">
+            <div class="endpoint-path">
+              <span class="verb-pill verb-delete">DEL</span>
+              <span class="path">/users/:id</span>
+            </div>
+            <h1>Delete User</h1>
+            
+                          <h2>Params</h2>
+                              <div class="field">
+                  <div class="field-row">
+                    <span class="field-name">id</span>
+                    <span class="field-type">integer</span>
+                    <span class="field-badge in-path">path</span>                    <span class="field-badge required">Required</span>                  </div>
+                                  </div>
+                          
+                      </section>
+                                <section class="endpoint-page" id="posts--get--posts" data-endpoint-page="posts--get--posts">
+            <div class="endpoint-path">
+              <span class="verb-pill verb-get">GET</span>
+              <span class="path">/posts</span>
+            </div>
+            <h1>List Posts</h1>
+            
+            
+                      </section>
+                    </main>
+
+  <aside class="code-column">
+                            <div class="code-pane" data-code-pane="users--post--users">
+                          <div class="code-block">
+                <div class="code-header">
+                  <div>
+                    <span class="verb-tag verb-post">POST</span>
+                    <span class="path">/users</span>
+                  </div>
+                  <span class="lang">Shell · cURL</span>
+                </div>
+                                <div class="code-body">
+                  <div class="code-line-numbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11</pre></div>
+                  <div class="code-content"><pre>curl --request POST \
+  --url https://api.example.com/users \
+  --header &#39;Content-Type: application/json&#39; \
+  --data &#39;{
+  &quot;user&quot;: {
+    &quot;name&quot;: &quot;Marc&quot;,
+    &quot;email&quot;: &quot;marc@example.com&quot;,
+    &quot;password&quot;: &quot;i-love-rails&quot;,
+    &quot;age&quot;: 29
+  }
+}&#39;</pre></div>
+                </div>
+              </div>
+            
+                                        <div class="code-block" data-responses-for="users--post--users">
+                <div class="response-tabs">
+                                      <span class="response-tab status-2xx active"
+                          data-resp-status="201"
+                          data-resp-target="users--post--users"
+                          title="Created">201</span>
+                                      <span class="response-tab status-4xx"
+                          data-resp-status="409"
+                          data-resp-target="users--post--users"
+                          title="Conflict — email already in use">409</span>
+                                      <span class="response-tab status-4xx"
+                          data-resp-status="422"
+                          data-resp-target="users--post--users"
+                          title="Validation failed">422</span>
+                                  </div>
+                                                    <div class="response-body active"
+                       data-resp-body="201"
+                       data-resp-target="users--post--users">
+                    <div class="code-body">
+                      <div class="code-line-numbers"><pre>1
+2
+3
+4
+5
+6</pre></div>
+                      <div class="code-content"><pre>{
+  &quot;id&quot;: 1,
+  &quot;name&quot;: &quot;Marc&quot;,
+  &quot;email&quot;: &quot;marc@example.com&quot;,
+  &quot;token&quot;: &quot;eyJhbGciOiJIUzI1NiIs...&quot;
+}</pre></div>
+                    </div>
+                  </div>
+                                                    <div class="response-body "
+                       data-resp-body="409"
+                       data-resp-target="users--post--users">
+                    <div class="code-body">
+                      <div class="code-line-numbers"><pre>1</pre></div>
+                      <div class="code-content"><pre>{ &quot;error&quot;: &quot;email_taken&quot; }</pre></div>
+                    </div>
+                  </div>
+                                                    <div class="response-body "
+                       data-resp-body="422"
+                       data-resp-target="users--post--users">
+                    <div class="code-body">
+                      <div class="code-line-numbers"><pre>1</pre></div>
+                      <div class="code-content"><pre>{ &quot;errors&quot;: { &quot;password&quot;: [&quot;too short&quot;] } }</pre></div>
+                    </div>
+                  </div>
+                              </div>
+                      </div>
+                                <div class="code-pane" data-code-pane="users--get--users-id">
+                          <div class="code-block">
+                <div class="code-header">
+                  <div>
+                    <span class="verb-tag verb-get">GET</span>
+                    <span class="path">/users/:id</span>
+                  </div>
+                  <span class="lang">Shell · cURL</span>
+                </div>
+                                <div class="code-body">
+                  <div class="code-line-numbers"><pre>1
+2</pre></div>
+                  <div class="code-content"><pre>curl --request GET \
+  --url https://api.example.com/users/42</pre></div>
+                </div>
+              </div>
+            
+                                        <div class="code-block" data-responses-for="users--get--users-id">
+                <div class="response-tabs">
+                                      <span class="response-tab status-2xx active"
+                          data-resp-status="200"
+                          data-resp-target="users--get--users-id"
+                          title="">200</span>
+                                  </div>
+                                                    <div class="response-body active"
+                       data-resp-body="200"
+                       data-resp-target="users--get--users-id">
+                    <div class="code-body">
+                      <div class="code-line-numbers"><pre>1</pre></div>
+                      <div class="code-content"><pre>{}</pre></div>
+                    </div>
+                  </div>
+                              </div>
+                      </div>
+                                <div class="code-pane" data-code-pane="users--delete--users-id">
+                          <div class="code-block">
+                <div class="code-header">
+                  <div>
+                    <span class="verb-tag verb-delete">DEL</span>
+                    <span class="path">/users/:id</span>
+                  </div>
+                  <span class="lang">Shell · cURL</span>
+                </div>
+                                <div class="code-body">
+                  <div class="code-line-numbers"><pre>1
+2</pre></div>
+                  <div class="code-content"><pre>curl --request DELETE \
+  --url https://api.example.com/users/1</pre></div>
+                </div>
+              </div>
+            
+                                        <div class="code-block" data-responses-for="users--delete--users-id">
+                <div class="response-tabs">
+                                      <span class="response-tab status-2xx active"
+                          data-resp-status="204"
+                          data-resp-target="users--delete--users-id"
+                          title="No Content">204</span>
+                                      <span class="response-tab status-4xx"
+                          data-resp-status="404"
+                          data-resp-target="users--delete--users-id"
+                          title="Not Found">404</span>
+                                  </div>
+                                                    <div class="response-body active"
+                       data-resp-body="204"
+                       data-resp-target="users--delete--users-id">
+                    <div class="code-body">
+                      <div class="code-line-numbers"><pre>1</pre></div>
+                      <div class="code-content"><pre>{}</pre></div>
+                    </div>
+                  </div>
+                                                    <div class="response-body "
+                       data-resp-body="404"
+                       data-resp-target="users--delete--users-id">
+                    <div class="code-body">
+                      <div class="code-line-numbers"><pre>1</pre></div>
+                      <div class="code-content"><pre>{ &quot;error&quot;: &quot;not_found&quot; }</pre></div>
+                    </div>
+                  </div>
+                              </div>
+                      </div>
+                                          <div class="code-pane" data-code-pane="posts--get--posts">
+                          <div class="code-block">
+                <div class="code-header">
+                  <div>
+                    <span class="verb-tag verb-get">GET</span>
+                    <span class="path">/posts</span>
+                  </div>
+                  <span class="lang">Shell · cURL</span>
+                </div>
+                                <div class="code-body">
+                  <div class="code-line-numbers"><pre>1
+2</pre></div>
+                  <div class="code-content"><pre>curl --request GET \
+  --url https://api.example.com/posts</pre></div>
+                </div>
+              </div>
+            
+                                        <div class="code-block" data-responses-for="posts--get--posts">
+                <div class="response-tabs">
+                                      <span class="response-tab status-2xx active"
+                          data-resp-status="200"
+                          data-resp-target="posts--get--posts"
+                          title="">200</span>
+                                  </div>
+                                                    <div class="response-body active"
+                       data-resp-body="200"
+                       data-resp-target="posts--get--posts">
+                    <div class="code-body">
+                      <div class="code-line-numbers"><pre>1</pre></div>
+                      <div class="code-content"><pre>{}</pre></div>
+                    </div>
+                  </div>
+                              </div>
+                      </div>
+                    </aside>
+
+</div>
+
+<script>
+(function() {
+  const sidebarLinks = document.querySelectorAll('.endpoints a[data-endpoint]');
+  const pages        = document.querySelectorAll('[data-endpoint-page]');
+  const codePanes    = document.querySelectorAll('[data-code-pane]');
+
+  function activate(id) {
+    if (!id) return;
+    sidebarLinks.forEach(a => a.classList.toggle('active', a.dataset.endpoint === id));
+    pages.forEach(p      => p.classList.toggle('active', p.dataset.endpointPage === id));
+    codePanes.forEach(c  => c.classList.toggle('active', c.dataset.codePane === id));
+  }
+
+  function pickInitial() {
+    const fromHash = location.hash ? location.hash.slice(1) : null;
+    if (fromHash && document.getElementById(fromHash)) return fromHash;
+    const first = sidebarLinks[0];
+    return first ? first.dataset.endpoint : null;
+  }
+
+  sidebarLinks.forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const id = a.dataset.endpoint;
+      history.replaceState(null, '', '#' + id);
+      activate(id);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
+  });
+
+  window.addEventListener('hashchange', () => activate(location.hash.slice(1)));
+
+  activate(pickInitial());
+
+  // Response status tab switching
+  document.querySelectorAll('.response-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.respTarget;
+      const status = tab.dataset.respStatus;
+      document.querySelectorAll('.response-tab[data-resp-target="' + target + '"]').forEach(t => {
+        t.classList.toggle('active', t === tab);
+      });
+      document.querySelectorAll('.response-body[data-resp-target="' + target + '"]').forEach(b => {
+        b.classList.toggle('active', b.dataset.respBody === status);
+      });
+    });
+  });
+
+  // Sidebar search filter
+  const search = document.getElementById('rad-search');
+  if (search) {
+    search.addEventListener('input', () => {
+      const q = search.value.toLowerCase().trim();
+      document.querySelectorAll('.endpoints li').forEach(li => {
+        const label = (li.dataset.endpointLabel || '').toLowerCase();
+        li.style.display = !q || label.includes(q) ? '' : 'none';
+      });
+      document.querySelectorAll('.section').forEach(section => {
+        const visible = Array.from(section.querySelectorAll('li')).some(li => li.style.display !== 'none');
+        section.style.display = visible ? '' : 'none';
+      });
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== search) {
+        e.preventDefault();
+        search.focus();
+      }
+    });
+  }
+})();
+</script>
+
+</body>
+</html>

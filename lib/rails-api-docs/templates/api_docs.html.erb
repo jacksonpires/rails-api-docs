@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= h(general["title"]) %></title>
+<style>
+  :root {
+    --primary: <%= h(general["primary_color"]) %>;
+    --primary-soft: color-mix(in srgb, <%= h(general["primary_color"]) %> 8%, transparent);
+    --secondary: <%= h(general["secondary_color"]) %>;
+    --accent: <%= h(general["accent_color"] || general["primary_color"]) %>;
+    --bg: #FFFFFF;
+    --sidebar-bg: #FAFAFA;
+    --border: #EAEAEA;
+    --border-strong: #D4D4D4;
+    --text: #1F1F1F;
+    --text-muted: #6B7280;
+    --text-soft: #9CA3AF;
+
+    --code-bg: #1B1B1F;
+    --code-text: #E5E5E5;
+    --code-line: #4B5563;
+
+    --verb-get: #2563EB;
+    --verb-post: #16A34A;
+    --verb-put: #D97706;
+    --verb-patch: #D97706;
+    --verb-delete: #DC2626;
+
+    --verb-get-dark: #60A5FA;
+    --verb-post-dark: #4ADE80;
+    --verb-put-dark: #FBBF24;
+    --verb-patch-dark: #FBBF24;
+    --verb-delete-dark: #F87171;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: <%= h(general["font_family"]) %>;
+    color: var(--text); background: var(--bg);
+    font-size: 14px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  code, pre, .mono { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+  .topbar {
+    height: 56px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 24px;
+    position: sticky; top: 0; background: var(--bg); z-index: 10;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; }
+  .brand-logo {
+    width: 26px; height: 26px; background: var(--primary); border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 13px; font-family: ui-monospace, monospace;
+  }
+  .spacer { flex: 1; }
+
+  .container { display: grid; grid-template-columns: 280px minmax(0, 1fr) 500px; align-items: start; }
+
+  .sidebar {
+    background: var(--sidebar-bg); border-right: 1px solid var(--border);
+    padding: 16px 12px 32px; position: sticky; top: 56px;
+    height: calc(100vh - 56px); overflow-y: auto;
+  }
+  .search {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 18px; color: var(--text-muted); font-size: 13px;
+  }
+  .search .kbd {
+    margin-left: auto; background: var(--sidebar-bg); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 6px; font-size: 11px;
+    font-family: ui-monospace, monospace; color: var(--text-muted);
+  }
+  .search input {
+    border: none; outline: none; background: transparent; flex: 1;
+    font: inherit; color: var(--text);
+  }
+  .search input::placeholder { color: var(--text-muted); }
+
+  .section { margin-bottom: 6px; }
+  .section-header {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+    font-weight: 600; font-size: 13px; color: var(--text);
+    border-radius: 6px; user-select: none;
+  }
+  .endpoints { list-style: none; padding: 0; }
+  .endpoints a {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 6px 10px 6px 22px; border-radius: 6px; font-size: 13px;
+    color: var(--text); margin-bottom: 1px;
+  }
+  .endpoints a:hover { background: rgba(0,0,0,0.04); }
+  .endpoints a.active { background: var(--primary-soft); color: var(--primary); font-weight: 500; }
+  .endpoints a .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .verb {
+    font-family: ui-monospace, monospace; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;
+  }
+  .verb-get    { color: var(--verb-get); }
+  .verb-post   { color: var(--verb-post); }
+  .verb-put    { color: var(--verb-put); }
+  .verb-patch  { color: var(--verb-patch); }
+  .verb-delete { color: var(--verb-delete); }
+
+  .main { padding: 40px 56px 80px; max-width: 760px; width: 100%; }
+
+  .endpoint-page { display: none; }
+  .endpoint-page.active { display: block; }
+
+  .endpoint-path {
+    display: flex; align-items: center; gap: 8px;
+    width: fit-content; max-width: 100%;
+    background: var(--sidebar-bg); border: 1px solid var(--border);
+    border-radius: 999px; padding: 4px 12px 4px 4px; font-size: 12px;
+    color: var(--text-muted); margin-bottom: 14px;
+  }
+  .endpoint-path .verb-pill {
+    padding: 3px 10px; border-radius: 999px; font-size: 11px;
+    font-family: ui-monospace, monospace; font-weight: 700;
+  }
+  .endpoint-path .verb-pill.verb-get    { background: rgba(37,99,235,0.12); color: var(--verb-get); }
+  .endpoint-path .verb-pill.verb-post   { background: rgba(22,163,74,0.12); color: var(--verb-post); }
+  .endpoint-path .verb-pill.verb-put,
+  .endpoint-path .verb-pill.verb-patch  { background: rgba(217,119,6,0.12); color: var(--verb-put); }
+  .endpoint-path .verb-pill.verb-delete { background: rgba(220,38,38,0.12); color: var(--verb-delete); }
+  .endpoint-path .path {
+    font-family: ui-monospace, monospace; color: var(--text); font-size: 12.5px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  }
+
+  .main h1 { font-size: 28px; font-weight: 700; line-height: 1.2; margin-bottom: 10px; letter-spacing: -0.01em; }
+  .main .lead { font-size: 15px; color: var(--text); margin-bottom: 32px; max-width: 620px; }
+  .main h2 {
+    font-size: 19px; font-weight: 600; padding-bottom: 10px;
+    border-bottom: 1px solid var(--border); margin: 36px 0 18px;
+    letter-spacing: -0.01em;
+  }
+  .main h2:first-of-type { margin-top: 0; }
+
+  .field { padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .field:last-child { border-bottom: none; }
+  .field-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .field-name { font-family: ui-monospace, monospace; font-weight: 600; font-size: 14px; color: var(--text); }
+  .field-type { color: var(--text-muted); font-size: 13px; }
+  .field-badge {
+    font-size: 11px; padding: 1px 7px; border-radius: 4px;
+    font-weight: 500; letter-spacing: 0.01em;
+  }
+  .field-badge.required  { background: #FEF3C7; color: #92400E; }
+  .field-badge.in-path   { background: #E0E7FF; color: #3730A3; }
+  .field-badge.format    { background: #ECFCCB; color: #3F6212; }
+  .field-badge.readonly  { background: #DBEAFE; color: #1E40AF; }
+  .field-badge.writeonly { background: #FEE2E2; color: #991B1B; }
+  .field-badge.nullable  { background: #F3F4F6; color: #4B5563; font-style: italic; }
+  .field-meta {
+    font-size: 11px; font-family: ui-monospace, monospace;
+    color: var(--text-soft); padding: 0 2px;
+  }
+  .field-meta.mono { color: var(--text-muted); }
+  .field-desc    { color: var(--text-muted); font-size: 13px; margin-top: 6px; line-height: 1.5; }
+  .field-enum    { color: var(--text-muted); font-size: 12.5px; margin-top: 4px; }
+  .field-enum code {
+    background: var(--sidebar-bg); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 4px; font-size: 11.5px;
+  }
+  .field-example { color: var(--text-muted); font-size: 12.5px; margin-top: 4px; }
+  .field-example code {
+    background: var(--sidebar-bg); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 4px; font-size: 11.5px;
+  }
+
+  .endpoint-meta {
+    font-size: 11px; padding: 2px 8px; border-radius: 999px;
+    font-weight: 500; margin-left: 4px;
+  }
+  .endpoint-meta.deprecated { background: #FEE2E2; color: #991B1B; font-weight: 600; }
+  .endpoint-meta.auth       { background: #1F2937; color: #E5E7EB; font-family: ui-monospace, monospace; }
+  .endpoint-meta.tag {
+    background: var(--sidebar-bg); color: var(--text-muted); border: 1px solid var(--border);
+    cursor: pointer; font-family: inherit; font-size: 11px;
+    padding: 2px 8px; border-radius: 999px; font-weight: 500;
+    transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  }
+  .endpoint-meta.tag:hover { background: var(--border); color: var(--text); }
+  .endpoint-meta.tag.active {
+    background: var(--primary-soft); color: var(--primary); border-color: var(--primary);
+  }
+  .endpoint-meta.tag:focus-visible {
+    outline: 2px solid var(--primary); outline-offset: 1px;
+  }
+
+  .active-tag-filter {
+    display: flex; align-items: center; gap: 6px;
+    margin: 0 4px 14px;
+    padding: 6px 8px 6px 12px;
+    background: var(--primary-soft); border: 1px solid var(--primary);
+    border-radius: 8px;
+    font-size: 12px; color: var(--primary);
+  }
+  .active-tag-filter .label { font-weight: 500; }
+  .active-tag-filter .tag-name {
+    font-family: ui-monospace, monospace; font-weight: 600;
+    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .active-tag-filter .clear-filter {
+    background: transparent; border: none; cursor: pointer;
+    color: var(--primary); font-size: 16px; line-height: 1;
+    padding: 0 4px; border-radius: 4px;
+  }
+  .active-tag-filter .clear-filter:hover { background: rgba(204,0,0,0.12); }
+  .active-tag-filter .clear-filter:focus-visible {
+    outline: 2px solid var(--primary); outline-offset: 1px;
+  }
+
+  .main h1.deprecated {
+    text-decoration: line-through;
+    text-decoration-color: rgba(220, 38, 38, 0.5);
+    text-decoration-thickness: 2px;
+    color: var(--text-muted);
+  }
+
+  .response-block {
+    margin: 20px 0 28px; padding: 16px 18px;
+    background: var(--sidebar-bg); border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .response-block-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 6px;
+  }
+  .response-status {
+    font-family: ui-monospace, monospace; font-weight: 700; font-size: 13px;
+  }
+  .response-status.status-2xx { color: #16A34A; }
+  .response-status.status-3xx { color: #0EA5E9; }
+  .response-status.status-4xx { color: #D97706; }
+  .response-status.status-5xx { color: #DC2626; }
+  .response-block-desc { color: var(--text); font-size: 14px; }
+  .response-subhead {
+    font-size: 13px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    margin: 14px 0 4px; padding: 0;
+    border-bottom: none;
+  }
+  .response-block .field:last-of-type { border-bottom: none; }
+
+  .empty-state {
+    padding: 80px 24px; text-align: center; color: var(--text-muted);
+  }
+  .empty-state h1 { color: var(--text); margin-bottom: 12px; }
+
+  .code-column {
+    padding: 40px 32px 80px 0; position: sticky; top: 56px;
+    height: calc(100vh - 56px); overflow-y: auto;
+  }
+  .code-pane { display: none; flex-direction: column; gap: 16px; }
+  .code-pane.active { display: flex; }
+
+  .code-block {
+    background: var(--code-bg); border-radius: 12px; overflow: hidden;
+    color: var(--code-text); font-family: ui-monospace, monospace;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .code-header {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 12.5px;
+  }
+  .code-header > div {
+    display: flex; align-items: center;
+    min-width: 0; flex: 1; overflow: hidden;
+  }
+  .code-header .verb-tag { font-weight: 700; margin-right: 8px; font-size: 11.5px; letter-spacing: 0.04em; flex-shrink: 0; }
+  .code-header .verb-tag.verb-get    { color: var(--verb-get-dark); }
+  .code-header .verb-tag.verb-post   { color: var(--verb-post-dark); }
+  .code-header .verb-tag.verb-put    { color: var(--verb-put-dark); }
+  .code-header .verb-tag.verb-patch  { color: var(--verb-patch-dark); }
+  .code-header .verb-tag.verb-delete { color: var(--verb-delete-dark); }
+  .code-header .path {
+    color: #E5E5E5; font-size: 12.5px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  }
+  .code-header .lang { color: var(--text-soft); font-size: 11.5px; flex-shrink: 0; }
+  .code-header-right {
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  }
+  .response-title {
+    color: #E5E5E5; font-size: 12.5px; font-weight: 500;
+  }
+  .copy-btn {
+    background: transparent; border: none; cursor: pointer;
+    padding: 4px; border-radius: 4px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--text-soft);
+    transition: color 120ms ease, background 120ms ease;
+  }
+  .copy-btn:hover { color: #E5E5E5; background: rgba(255,255,255,0.08); }
+  .copy-btn:active { background: rgba(255,255,255,0.12); }
+  .copy-btn:focus-visible {
+    outline: 2px solid rgba(255,255,255,0.4); outline-offset: 1px;
+  }
+  .copy-btn .check-icon { display: none; }
+  .copy-btn.copied .copy-icon { display: none; }
+  .copy-btn.copied .check-icon { display: inline; color: #4ADE80; }
+  .copy-btn.copied { color: #4ADE80; }
+
+  .response-tabs {
+    display: flex; gap: 18px; padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .response-tab {
+    color: var(--text-soft); font-size: 12.5px; font-weight: 500;
+    cursor: pointer; padding: 2px 0; font-family: ui-monospace, monospace;
+    border-bottom: 1.5px solid transparent;
+  }
+  .response-tab.active { color: #E5E5E5; border-bottom-color: #E5E5E5; }
+  .response-tab.status-2xx.active { color: #4ADE80; border-bottom-color: #4ADE80; }
+  .response-tab.status-3xx.active { color: #60A5FA; border-bottom-color: #60A5FA; }
+  .response-tab.status-4xx.active { color: #FBBF24; border-bottom-color: #FBBF24; }
+  .response-tab.status-5xx.active { color: #F87171; border-bottom-color: #F87171; }
+  .response-tab:hover:not(.active) { color: #D1D5DB; }
+
+  .response-body { display: none; }
+  .response-body.active { display: block; }
+
+  .code-body { display: flex; padding: 12px 0; font-size: 12.5px; line-height: 1.7; overflow-x: auto; }
+  .code-line-numbers {
+    padding: 0 10px 0 16px; color: var(--code-line); text-align: right;
+    user-select: none; border-right: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
+  }
+  .code-content { padding: 0 16px; flex: 1; min-width: 0; }
+  .code-content pre { margin: 0; white-space: pre; }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+  .code-block ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo"><%= h(general["title"].to_s[0]) %></div>
+    <span><%= h(general["title"]) %></span>
+  </div>
+  <div class="spacer"></div>
+</header>
+
+<div class="container">
+
+  <aside class="sidebar">
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+      <input type="search" placeholder="Search endpoints" id="rad-search">
+      <span class="kbd">/</span>
+    </div>
+
+    <div class="active-tag-filter" id="rad-active-tag-filter" hidden>
+      <span class="label">Filtered by:</span>
+      <span class="tag-name" aria-live="polite"></span>
+      <button type="button" class="clear-filter" aria-label="Clear tag filter">×</button>
+    </div>
+
+    <% visible_sections.each do |section_key, section| -%>
+      <div class="section" data-section="<%= h(section_slug(section_key)) %>">
+        <div class="section-header"><%= h(section["name"]) %></div>
+        <ul class="endpoints">
+          <% section["endpoints"].each do |endpoint| -%>
+            <li data-endpoint-label="<%= h(endpoint['name']) %>"<%= sidebar_tags_attr(endpoint) %>>
+              <a href="#<%= endpoint_id(section_key, endpoint) %>" data-endpoint="<%= endpoint_id(section_key, endpoint) %>">
+                <span class="label"><%= h(endpoint["name"]) %></span>
+                <span class="verb <%= verb_class(endpoint['method']) %>"><%= verb_label(endpoint["method"]) %></span>
+              </a>
+            </li>
+          <% end -%>
+        </ul>
+      </div>
+    <% end -%>
+  </aside>
+
+  <main class="main">
+    <% if empty? -%>
+      <div class="empty-state">
+        <h1>No endpoints to show</h1>
+        <p>Add routes to your Rails app and run <code>rails g rails-api-docs:init</code> to scaffold the config,
+           then edit <code>config/rails-api-docs.yml</code> to set <code>show: true</code> on the endpoints you want here.</p>
+      </div>
+    <% else -%>
+      <% visible_sections.each do |section_key, section| -%>
+        <% section["endpoints"].each do |endpoint| -%>
+          <section class="endpoint-page" id="<%= endpoint_id(section_key, endpoint) %>" data-endpoint-page="<%= endpoint_id(section_key, endpoint) %>">
+            <div class="endpoint-path">
+              <span class="verb-pill <%= verb_class(endpoint['method']) %>"><%= verb_label(endpoint["method"]) %></span>
+              <span class="path"><%= h(endpoint["path"]) %></span>
+              <% if endpoint["deprecated"] -%>
+                <span class="endpoint-meta deprecated">Deprecated</span>
+              <% end -%>
+              <% if endpoint["auth"] && !endpoint["auth"].to_s.empty? -%>
+                <span class="endpoint-meta auth">🔒 <%= h(auth_label(endpoint["auth"])) %></span>
+              <% end -%>
+              <% Array(endpoint["tags"]).each do |tag| -%>
+                <button type="button" class="endpoint-meta tag" data-tag-filter="<%= h(tag) %>" aria-pressed="false"><%= h(tag) %></button>
+              <% end -%>
+            </div>
+            <% if endpoint["deprecated"] -%>
+              <h1 class="deprecated"><%= h(endpoint["name"]) %></h1>
+            <% else -%>
+              <h1><%= h(endpoint["name"]) %></h1>
+            <% end -%>
+            <% if endpoint["description"] && !endpoint["description"].to_s.empty? -%>
+              <p class="lead"><%= h(endpoint["description"]) %></p>
+            <% end -%>
+
+            <% if headers_present?(endpoint) -%>
+              <h2>Headers</h2>
+              <%= render_fields(endpoint["headers"]) %>
+            <% end -%>
+
+            <% if params_present?(endpoint) -%>
+              <h2>Params</h2>
+              <%= render_fields(endpoint["params"]) %>
+            <% end -%>
+
+            <% if body_present?(endpoint) -%>
+              <h2>Body</h2>
+              <%= render_fields(endpoint["body"]) %>
+            <% end -%>
+
+            <% if responses_have_details?(endpoint) -%>
+              <h2>Responses</h2>
+              <% responses_for(endpoint).each do |resp| -%>
+                <div class="response-block">
+                  <div class="response-block-header">
+                    <span class="response-status <%= status_class(resp['status']) %>"><%= h(resp["status"]) %></span>
+                    <% if resp["description"] && !resp["description"].empty? -%>
+                      <span class="response-block-desc"><%= h(resp["description"]) %></span>
+                    <% end -%>
+                  </div>
+                  <% if resp["headers"].any? -%>
+                    <h3 class="response-subhead">Headers</h3>
+                    <%= render_fields(resp["headers"]) %>
+                  <% end -%>
+                  <% if resp["schema"].any? -%>
+                    <h3 class="response-subhead">Schema</h3>
+                    <%= render_fields(resp["schema"]) %>
+                  <% end -%>
+                </div>
+              <% end -%>
+            <% end -%>
+          </section>
+        <% end -%>
+      <% end -%>
+    <% end -%>
+  </main>
+
+  <aside class="code-column">
+    <% visible_sections.each do |section_key, section| -%>
+      <% section["endpoints"].each do |endpoint| -%>
+        <% if general["show_curl"] || general["show_examples"] -%>
+          <div class="code-pane" data-code-pane="<%= endpoint_id(section_key, endpoint) %>">
+            <% if general["show_curl"] -%>
+              <div class="code-block">
+                <div class="code-header">
+                  <div>
+                    <span class="verb-tag <%= verb_class(endpoint['method']) %>"><%= verb_label(endpoint["method"]) %></span>
+                    <span class="path"><%= h(endpoint["path"]) %></span>
+                  </div>
+                  <div class="code-header-right">
+                    <span class="lang">Shell · cURL</span>
+                    <button type="button" class="copy-btn" aria-label="Copy to clipboard">
+                      <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      <svg class="check-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </button>
+                  </div>
+                </div>
+                <%
+                  curl   = curl_for(endpoint)
+                  lines  = curl.lines
+                  count  = lines.size
+                -%>
+                <div class="code-body">
+                  <div class="code-line-numbers"><pre><%= (1..count).to_a.join("\n") %></pre></div>
+                  <div class="code-content"><pre><%= h(curl) %></pre></div>
+                </div>
+              </div>
+            <% end -%>
+
+            <% if general["show_examples"] -%>
+              <%
+                responses     = responses_for(endpoint)
+                response_uid  = endpoint_id(section_key, endpoint)
+              -%>
+              <div class="code-block" data-responses-for="<%= response_uid %>">
+                <div class="code-header">
+                  <span class="response-title">Response</span>
+                  <div class="code-header-right">
+                    <button type="button" class="copy-btn" aria-label="Copy to clipboard">
+                      <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      <svg class="check-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="response-tabs">
+                  <% responses.each_with_index do |resp, i| -%>
+                    <span class="response-tab <%= status_class(resp['status']) %><%= ' active' if i.zero? %>"
+                          data-resp-status="<%= h(resp['status']) %>"
+                          data-resp-target="<%= response_uid %>"
+                          title="<%= h(resp['description']) %>"><%= h(resp['status']) %></span>
+                  <% end -%>
+                </div>
+                <% responses.each_with_index do |resp, i| -%>
+                  <%
+                    body  = resp["example"].to_s
+                    body  = "{}" if body.strip.empty?
+                    lines = body.lines.size
+                  -%>
+                  <div class="response-body <%= 'active' if i.zero? %>"
+                       data-resp-body="<%= h(resp['status']) %>"
+                       data-resp-target="<%= response_uid %>">
+                    <div class="code-body">
+                      <div class="code-line-numbers"><pre><%= (1..lines).to_a.join("\n") %></pre></div>
+                      <div class="code-content"><pre><%= h(body) %></pre></div>
+                    </div>
+                  </div>
+                <% end -%>
+              </div>
+            <% end -%>
+          </div>
+        <% end -%>
+      <% end -%>
+    <% end -%>
+  </aside>
+
+</div>
+
+<script>
+(function() {
+  const sidebarLinks = document.querySelectorAll('.endpoints a[data-endpoint]');
+  const pages        = document.querySelectorAll('[data-endpoint-page]');
+  const codePanes    = document.querySelectorAll('[data-code-pane]');
+
+  function activate(id) {
+    if (!id) return;
+    sidebarLinks.forEach(a => a.classList.toggle('active', a.dataset.endpoint === id));
+    pages.forEach(p      => p.classList.toggle('active', p.dataset.endpointPage === id));
+    codePanes.forEach(c  => c.classList.toggle('active', c.dataset.codePane === id));
+  }
+
+  function pickInitial() {
+    const fromHash = location.hash ? location.hash.slice(1) : null;
+    if (fromHash && document.getElementById(fromHash)) return fromHash;
+    const first = sidebarLinks[0];
+    return first ? first.dataset.endpoint : null;
+  }
+
+  sidebarLinks.forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const id = a.dataset.endpoint;
+      history.replaceState(null, '', '#' + id);
+      activate(id);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
+  });
+
+  window.addEventListener('hashchange', () => activate(location.hash.slice(1)));
+
+  activate(pickInitial());
+
+  // Copy-to-clipboard buttons (curl + response)
+  function getCopyText(btn) {
+    const block = btn.closest('.code-block');
+    if (!block) return '';
+    // Response box: copy whichever tab is currently active.
+    const activeResp = block.querySelector('.response-body.active .code-content pre');
+    if (activeResp) return activeResp.textContent;
+    // Curl box: only one <pre> in code-content.
+    const pre = block.querySelector('.code-content pre');
+    return pre ? pre.textContent : '';
+  }
+
+  function flashCopied(btn) {
+    btn.classList.add('copied');
+    setTimeout(() => btn.classList.remove('copied'), 1500);
+  }
+
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      try { await navigator.clipboard.writeText(text); return true; } catch (_) { /* fall through */ }
+    }
+    // Legacy fallback for non-secure contexts (HTTP, file://).
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const text = getCopyText(btn);
+      if (!text) return;
+      const ok = await copyText(text);
+      if (ok) flashCopied(btn);
+    });
+  });
+
+  // Response status tab switching
+  document.querySelectorAll('.response-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.respTarget;
+      const status = tab.dataset.respStatus;
+      document.querySelectorAll('.response-tab[data-resp-target="' + target + '"]').forEach(t => {
+        t.classList.toggle('active', t === tab);
+      });
+      document.querySelectorAll('.response-body[data-resp-target="' + target + '"]').forEach(b => {
+        b.classList.toggle('active', b.dataset.respBody === status);
+      });
+    });
+  });
+
+  // Sidebar filters — text search (unchanged) AND tag click filter (new).
+  // Both compose: a sidebar item is visible only if it matches BOTH the
+  // current search query and the active tag filter.
+  const search     = document.getElementById('rad-search');
+  const filterPill = document.getElementById('rad-active-tag-filter');
+  const filterName = filterPill?.querySelector('.tag-name');
+  const clearBtn   = filterPill?.querySelector('.clear-filter');
+  let activeTag    = null;
+
+  function applyFilters() {
+    const q = (search?.value || '').toLowerCase().trim();
+    document.querySelectorAll('.endpoints li').forEach(li => {
+      const label = (li.dataset.endpointLabel || '').toLowerCase();
+      let tags = [];
+      try { tags = JSON.parse(li.dataset.endpointTags || '[]'); } catch (_) {}
+
+      const matchesSearch = !q || label.includes(q);
+      const matchesTag    = !activeTag || tags.includes(activeTag);
+      li.style.display = matchesSearch && matchesTag ? '' : 'none';
+    });
+    document.querySelectorAll('.section').forEach(section => {
+      const visible = Array.from(section.querySelectorAll('li')).some(li => li.style.display !== 'none');
+      section.style.display = visible ? '' : 'none';
+    });
+  }
+
+  function setTagFilter(tag) {
+    // Clicking the same tag toggles off; clicking a different one switches.
+    activeTag = (activeTag === tag) ? null : tag;
+
+    // Reflect on every copy of the badge across the document.
+    document.querySelectorAll('.endpoint-meta.tag').forEach(btn => {
+      const isActive = activeTag !== null && btn.dataset.tagFilter === activeTag;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+
+    if (filterPill) {
+      filterPill.hidden = !activeTag;
+      if (activeTag) filterName.textContent = activeTag;
+    }
+    applyFilters();
+  }
+
+  document.querySelectorAll('.endpoint-meta.tag').forEach(btn => {
+    btn.addEventListener('click', () => setTagFilter(btn.dataset.tagFilter));
+  });
+  clearBtn?.addEventListener('click', () => setTagFilter(activeTag));   // toggle off
+
+  if (search) {
+    search.addEventListener('input', applyFilters);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== search) {
+        e.preventDefault();
+        search.focus();
+      }
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
