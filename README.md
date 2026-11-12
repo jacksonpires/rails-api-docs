@@ -524,7 +524,7 @@ prebuilt `public/api-docs.html` as a static asset.
 
 ```bash
 bundle install
-bundle exec rake test       # 91 tests, ~0.1s
+bundle exec rake test       # 185 tests, ~0.3s
 ```
 
 The test suite uses minitest + a real `ActionDispatch::Routing::RouteSet`

@@ -10,7 +10,7 @@ Notes for future sessions working on this gem. Does not duplicate the README —
 
 ```bash
 bundle install
-bundle exec rake test           # 91 runs, ~0.1s
+bundle exec rake test           # 185 runs, ~0.3s
 ```
 
 End-to-end smoke test against a real Rails app:
