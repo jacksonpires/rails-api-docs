@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.2] - 2026-11-12
+
+### Fixed
+
+- **"Filtered by:" pill always visible.** The pill's
+  `.active-tag-filter { display: flex }` rule overrode the `[hidden]`
+  attribute, so the pill showed up empty on page load and stayed on
+  screen after clearing the tag filter. Added
+  `.active-tag-filter[hidden] { display: none; }`.
+
+### Changed
+
+- Verified on Ruby 4.0.9 + Rails 8.1.4.1 (full suite green); no
+  dependency constraint changes.
+- README screenshot replaced with an animated demo GIF.
+
 ## [0.1.1] - 2026-06-03
 
 ### Fixed
