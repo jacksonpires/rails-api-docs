@@ -1,5 +1,7 @@
 # rails-api-docs
 
+[![CI](https://github.com/jacksonpires/rails-api-docs/actions/workflows/ci.yml/badge.svg)](https://github.com/jacksonpires/rails-api-docs/actions/workflows/ci.yml)
+
 Generate beautiful API documentation for your Rails app — two outputs from
 one editable YAML:
 
@@ -23,6 +25,21 @@ there to add descriptions, examples, and constraints.
 ## Installation
 
 Requires Ruby ≥ 3.1 and Rails ≥ 7.1.
+
+### Compatibility matrix
+
+Every combination below runs the full test suite in CI
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+
+| Ruby \ Rails | 7.1 | 7.2 | 8.0 | 8.1 |
+|--------------|:---:|:---:|:---:|:---:|
+| 3.1          | ✅  | ✅  | —   | —   |
+| 3.2          | ✅  | ✅  | ✅  | ✅  |
+| 3.3          | ✅  | ✅  | ✅  | ✅  |
+| 3.4          | ✅  | ✅  | ✅  | ✅  |
+| 4.0          | ✅  | ✅  | ✅  | ✅  |
+
+— = not supported by Rails itself (Rails 8.x requires Ruby ≥ 3.2).
 
 ```ruby
 # Gemfile
@@ -525,6 +542,13 @@ prebuilt `public/api-docs.html` as a static asset.
 ```bash
 bundle install
 bundle exec rake test       # 185 tests, ~0.3s
+```
+
+To run against a specific Rails version from the compatibility matrix:
+
+```bash
+BUNDLE_GEMFILE=gemfiles/rails_7.1.gemfile bundle install
+BUNDLE_GEMFILE=gemfiles/rails_7.1.gemfile bundle exec rake test
 ```
 
 The test suite uses minitest + a real `ActionDispatch::Routing::RouteSet`

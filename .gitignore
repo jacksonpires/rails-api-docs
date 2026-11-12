@@ -17,3 +17,6 @@ test/version_tmp/
 tmp/
 .byebug_history
 .DS_Store
+
+# Per-Rails-version lockfiles (CI resolves them fresh)
+gemfiles/*.lock

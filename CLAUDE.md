@@ -13,6 +13,8 @@ bundle install
 bundle exec rake test           # 185 runs, ~0.3s
 ```
 
+Rails version matrix: `gemfiles/rails_<X.Y>.gemfile` (one per supported Rails minor), run via `BUNDLE_GEMFILE=gemfiles/rails_7.1.gemfile bundle exec rake test`. CI (`.github/workflows/ci.yml`) runs Ruby 3.1–4.0 × Rails 7.1–8.1. When adding a new Rails minor: add a gemfile, add it to the CI matrix, and update the README compatibility table. The `rails` dev dependency lives in the root `Gemfile` (not the gemspec) so the per-version gemfiles can pin it without Bundler override warnings.
+
 End-to-end smoke test against a real Rails app:
 ```bash
 bash /tmp/rad_smoke_test.sh     # spins up app in /tmp/rad-host, mounts gem, hits /rails/api-docs
