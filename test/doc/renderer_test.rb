@@ -507,6 +507,8 @@ class DocRendererTest < Minitest::Test
     assert_match(/<div class="active-tag-filter" id="rad-active-tag-filter" hidden>/, out)
     assert_match(/<span class="label">Filtered by:<\/span>/, out)
     assert_match(/<button type="button" class="clear-filter"[^>]*>×<\/button>/, out)
+    # The pill's `display: flex` must not defeat the [hidden] attribute.
+    assert_match(/\.active-tag-filter\[hidden\]\s*\{\s*display:\s*none;\s*\}/, out)
   end
 
   def test_tag_filter_javascript_is_wired

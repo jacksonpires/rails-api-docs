@@ -16,7 +16,7 @@ The gem inspects your routes, controllers (via Prism AST), and
 `ActiveRecord` schema to scaffold the YAML on first run; you edit it from
 there to add descriptions, examples, and constraints.
 
-![Rails API Docs](docs/rails-api-docs-1.png)
+![Rails API Docs demo](docs/rails-api-docs.gif)
 
 ---
 
