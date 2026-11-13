@@ -2,6 +2,10 @@
 
 Notes for future sessions working on this gem. Does not duplicate the README — focuses on design decisions, gotchas, and how to contribute without breaking things.
 
+## Knowledge management: OKF
+
+**OKF (Open Knowledge Format) is the system of record for everything about this gem.** Knowledge, design decisions, and documentation are recorded via OKF (use the `okf` skill) in the bundle at `.okf/` (start at `.okf/index.md`). When you learn something non-obvious, make a decision, or change behavior, capture or update it in the OKF bundle. Before answering "what do we know about X?" or "why was X done this way?", consult the OKF bundle first.
+
 ## Architecture in one sentence
 
 `RouteInspector` (routes) + `ControllerInspector` (Prism AST of `params.permit`) + `SchemaInspector` (AR columns) → `Config::Builder` assembles hash → `Config::Appender` merges with existing YAML → `Doc::Renderer` (ERB + `CurlRenderer`) → self-contained HTML.
@@ -60,11 +64,13 @@ Order of badges in a field-row matters for visual hierarchy — see the method b
 ### `field["example"]` is the single source of truth for sample values
 `CurlRenderer#body_json` and `Renderer#default_response_example` both prefer `field["example"]` over the type-derived `sample_value` fallback. The Builder + BodyInferrer seed `example:` for every inferred field, so by the time the renderer runs, there's almost always a real value to display. If you add a new place that needs a placeholder, follow the same precedence: user example wins; fall back to `RailsApiDocs::SampleValue.for(type)`.
 
+**Caveat:** `Renderer#default_response_example` only runs when an endpoint has **no** `responses:` key. The scaffold always writes `responses["200"]` with `example: ""`, so a freshly scaffolded endpoint shows `{}` in the response panel; the body-example synthesis only applies to hand-written endpoints without `responses`. Whether that is intended is still open.
+
 ### `RailsApiDocs::SampleValue` is the single source of truth for type→sample
-Three consumers (BodyInferrer, Builder for path params, CurlRenderer, Renderer) all call `SampleValue.for(type)`. Adding a new type maps in one place.
+Four consumers (BodyInferrer, Builder for path params, CurlRenderer, Renderer) all call `SampleValue.for(type)`; the private `sample_value` methods in `CurlRenderer` and `Renderer` only delegate to it. Adding a new type maps in one place.
 
 ### Pragmatic vs verbose YAML scaffold
-Default emits the commonly-edited subset (`description`, `example` on every field; minimal `responses["200"]` stub). `--verbose-yaml` (or `RailsApiDocs.configuration.verbose_yaml = true`) emits **every** key with defaults — useful for discoverability, costly in lines per endpoint (~10× larger). The verbose defaults live in `verbose_field_defaults` / `verbose_endpoint_meta` methods (not constants — return fresh hashes per call so `YAML.dump` doesn't emit anchors).
+Default emits the commonly-edited subset (`description`, `example` on every field; minimal `responses["200"]` stub). `--verbose-yaml` (or `RailsApiDocs.configuration.verbose_yaml = true`) emits **every** key with defaults — useful for discoverability, costly in lines per endpoint (~10× larger). The verbose defaults live in `verbose_field_defaults` (duplicated in `Config::Builder` and `BodyInferrer`, keep both in sync) / `Config::Builder#verbose_endpoint_meta` methods (not constants — return fresh hashes per call so `YAML.dump` doesn't emit anchors).
 
 ## Filters & extensibility
 
@@ -87,7 +93,7 @@ User-facing filters on `Configuration`:
 
 When both filters apply, blacklist (`ignored_controllers`) wins over whitelist (`only_controllers`).
 
-**Note:** the `ignored_controllers` string-match was changed to suffix-match in this same change (v0.1.0 was never released, so no migration impact). The previous semantics were exact-match.
+**Note:** the `ignored_controllers` string-match was changed from exact-match to suffix-match before v0.1.0 shipped, so no released version ever had the old semantics (no migration impact).
 
 ### CLI parsing of `--only-controllers` (4 forms)
 
@@ -118,14 +124,16 @@ CLI flag (`--api-only`) wins when both set; `--no-api-only` lets you override co
 
 ## Where to edit what
 
-| To change…                         | File                                                   |
-|------------------------------------|--------------------------------------------------------|
-| visual / HTML layout               | `lib/rails-api-docs/templates/api_docs.html.erb`       |
-| default colors                     | `Config::Builder::DEFAULT_GENERAL` + CSS vars in ERB   |
-| field type inference               | `Inspectors::BodyInferrer`                             |
-| sample value for type X            | `CurlRenderer#sample_value` and `Renderer#sample_value`|
-| new route filters                  | `Inspectors::RouteInspector` + `Configuration`         |
-| dev mount behavior                 | `Doc::Responder` (logic) + `engine.rb` (mount)         |
+| To change…                         | File                                                                                   |
+|------------------------------------|----------------------------------------------------------------------------------------|
+| visual / HTML layout               | `lib/rails-api-docs/templates/api_docs.html.erb`                                       |
+| default colors / general defaults  | `Config::Builder::DEFAULT_GENERAL` **and** `Doc::Renderer::DEFAULT_GENERAL` + CSS vars in ERB (keep both copies in sync) |
+| field type inference               | `Inspectors::BodyInferrer`                                                             |
+| sample value for type X            | `RailsApiDocs::SampleValue.for` (`lib/rails-api-docs/sample_value.rb`)                 |
+| verbose field defaults             | `Config::Builder#verbose_field_defaults` **and** `BodyInferrer#verbose_field_defaults` (keep in sync) |
+| new route filters                  | `Inspectors::RouteInspector` + `Configuration`                                         |
+| dev mount behavior                 | `Doc::Responder` (logic) + `engine.rb` (mount)                                         |
+| project knowledge / decisions      | OKF bundle in `.okf/`                                                                  |
 
 ## Known limitations (do NOT "fix" without explicit ask)
 
